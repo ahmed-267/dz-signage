@@ -8,7 +8,9 @@ Repo scaffold, Docker Postgres/Redis, Fortify auth shell, Inertia surfaces (`/`,
 
 ## Phase 1 — Authentication, Workspaces, Roles & Application Shells
 
-Workspaces, membership, roles/policies, customer/admin shells aligned to Figma.
+**Status: implemented**
+
+Workspaces, memberships, roles/policies, current workspace, onboarding, team invitations, workspace settings, Super Admin workspace/user read views, customer shell with workspace switcher.
 
 ## Phase 2 — Media Library
 

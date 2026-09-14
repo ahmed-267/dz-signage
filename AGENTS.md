@@ -42,8 +42,8 @@ Main design: https://www.figma.com/make/LV2LWOdsLyhfoG8sXFWlRV/Follow-Markdown-F
 
 - One Laravel backend.
 - PostgreSQL primary database.
-- Shared multi-tenant architecture (`workspace_id` planned).
-- Enforce Workspace isolation (server-side).
+- Shared multi-tenant architecture via `workspaces` / `workspace_members` / `users.current_workspace_id`.
+- Enforce Workspace isolation (server-side policies + middleware).
 - Super Admin is platform-level (not a workspace role).
 - Player remains architecturally separate from Customer/Admin UI (`/player`).
 - Future Templates and Screen Designs share one JSON rendering schema.

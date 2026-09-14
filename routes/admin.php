@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\WorkspaceController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -17,9 +19,11 @@ Route::middleware(['auth', 'verified', 'admin'])
 
         Route::inertia('dashboard', 'admin/dashboard')->name('dashboard');
 
+        Route::get('workspaces', [WorkspaceController::class, 'index'])->name('workspaces');
+        Route::get('workspaces/{workspace}', [WorkspaceController::class, 'show'])->name('workspaces.show');
+        Route::get('users', [UserController::class, 'index'])->name('users');
+
         $placeholders = [
-            'workspaces' => 'Workspaces',
-            'users' => 'Users',
             'screens' => 'Screens',
             'trials' => 'Trials',
             'subscriptions' => 'Subscriptions',

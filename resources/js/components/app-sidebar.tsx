@@ -18,6 +18,7 @@ import {
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
+import { WorkspaceSwitcher } from '@/components/workspace-switcher';
 import {
     Sidebar,
     SidebarContent,
@@ -42,7 +43,7 @@ import {
     team,
     templates,
 } from '@/routes/app';
-import { edit as editProfile } from '@/routes/profile';
+import { edit as editWorkspaceSettings } from '@/routes/app/workspace_settings';
 import type { NavGroup } from '@/types';
 
 const navGroups: NavGroup[] = [
@@ -135,7 +136,7 @@ const navGroups: NavGroup[] = [
             },
             {
                 title: 'Settings',
-                href: editProfile(),
+                href: editWorkspaceSettings(),
                 icon: Settings,
             },
         ],
@@ -155,6 +156,7 @@ export function AppSidebar() {
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
+                <WorkspaceSwitcher />
             </SidebarHeader>
 
             <SidebarContent className="gap-2 overflow-y-auto">

@@ -3,11 +3,29 @@ import { useEffect } from 'react';
 import { toast } from 'sonner';
 import type { FlashToast } from '@/types/ui';
 
+type SharedFlash = {
+    success?: string | null;
+    error?: string | null;
+};
+
 export function useFlashToast(): void {
     useEffect(() => {
-        return router.on('flash', (event) => {
-            const flash = (event as CustomEvent).detail?.flash;
-            const data = flash?.toast as FlashToast | undefined;
+        const removeNavigate = router.on('navigate', (event) => {
+            const flash = (event.detail.page.props as { flash?: SharedFlash })
+                .flash;
+
+            if (flash?.success) {
+                toast.success(flash.success);
+            }
+
+            if (flash?.error) {
+                toast.error(flash.error);
+            }
+        });
+
+        const removeFlash = router.on('flash', (event) => {
+            const detail = (event as CustomEvent).detail?.flash;
+            const data = detail?.toast as FlashToast | undefined;
 
             if (!data) {
                 return;
@@ -15,5 +33,10 @@ export function useFlashToast(): void {
 
             toast[data.type](data.message);
         });
+
+        return () => {
+            removeNavigate();
+            removeFlash();
+        };
     }, []);
 }

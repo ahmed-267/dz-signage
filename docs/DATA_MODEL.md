@@ -1,16 +1,20 @@
-# DZ Signage — Data Model (Planned)
+# DZ Signage — Data Model
 
-These entities are the **planned** domain model. Do **not** create all migrations during documentation-only work.
+**Current (Phase 1):** foundation auth tables plus Workspace domain.
 
-**Current (Phase 0):** `users` (+ Fortify/passkeys/2FA columns), `sessions`, `password_reset_tokens`, `passkeys`, `cache`/`jobs` infra tables. No workspace/signage domain tables yet.
+## Implemented entities
 
-## Planned entities
+| Entity                | Purpose                                  |
+| --------------------- | ---------------------------------------- |
+| `User`                | Account identity; `current_workspace_id` |
+| `Workspace`           | Tenant boundary                          |
+| `WorkspaceMember`     | User ↔ workspace + role (unique pair)    |
+| `WorkspaceInvitation` | Pending team invites (hashed token)      |
+
+## Planned entities (not yet migrated)
 
 | Entity                | Purpose                                       |
 | --------------------- | --------------------------------------------- |
-| `User`                | Account identity (exists today)               |
-| `Workspace`           | Tenant boundary                               |
-| `WorkspaceMember`     | User ↔ workspace + role                       |
 | `Location`            | Physical/site grouping for screens            |
 | `MediaAsset`          | Reusable media library item                   |
 | `Template`            | Reusable layout definition                    |
@@ -28,60 +32,31 @@ These entities are the **planned** domain model. Do **not** create all migration
 | `Subscription`        | Workspace billing entitlement                 |
 | `AuditLog`            | Security/ops audit trail                      |
 
-## High-level relationships
+## High-level relationships (Phase 1)
 
 ```
+User
+├── currentWorkspace (optional FK)
+└── workspaceMemberships
+
 Workspace
-├── WorkspaceMembers
-├── Locations
-├── MediaAssets
-├── Templates
-├── ScreenDesigns
-├── Playlists
-├── Schedules
-├── Screens
-└── Deployments
-
-Template
-└── TemplateVersions
-
-ScreenDesign
-└── ScreenDesignVersions
-
-Playlist
-└── PlaylistItems
-      └── ScreenDesign
-
-Schedule
-└── Playlist
-
-Location
-└── Screens
-
-Screen
-├── ScreenDevice
-├── ScreenHeartbeats
-└── Deployments
+├── members (WorkspaceMember)
+│     └── User + WorkspaceRole
+└── invitations (WorkspaceInvitation)
 ```
 
-Customer-owned rows should ultimately include `workspace_id` (see `/docs/ARCHITECTURE.md`).
+Future product trees (Locations, Media, Templates, …) remain under Workspace as documented previously.
 
-## JSON configuration (JSONB)
+## Workspace fields
 
-Use PostgreSQL **JSONB** for editor/layout-heavy configuration where appropriate, for example:
+- `name`, `slug` (unique), `industry`, `country`, `timezone` (IANA), `logo_path` nullable
 
-- Template layout schema
-- Screen Design layout schema
-- Widget configuration
-- Transitions
-- Styling properties
+## Invitation security
 
-Do **not** use JSONB for every business entity merely for convenience. Relational fields remain preferred for identity, FKs, status enums, billing, and query-heavy filters.
+- Store `token_hash` (SHA-256 of plain token); never store the raw token
+- Track `expires_at`, `accepted_at`, `revoked_at`
+- Accept requires matching authenticated email
 
-## Screen states (logical fields)
+## JSON configuration (JSONB) — planned
 
-Screens expose three independent axes (see `/docs/PRD.md`):
-
-- Operational: Active / Inactive
-- Pairing: Connected / Disconnected
-- Network: Online / Offline (derived largely from heartbeats)
+Use PostgreSQL **JSONB** for editor/layout-heavy configuration where appropriate. Do **not** use JSONB for every business entity merely for convenience.

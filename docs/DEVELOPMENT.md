@@ -4,6 +4,25 @@ Commands below match this repository (`package.json`, `composer.json`, `docker-c
 
 App URL: **http://localhost:8001** (`SERVER_PORT=8001` — avoids clashes with apps on `8000`).
 
+After migrate, create a public storage link if needed:
+
+```bash
+php artisan storage:link
+```
+
+Workspace logos are stored on the local `public` disk (`storage/app/public/workspace-logos`).
+
+### Phase 1 surfaces
+
+| Path                                | Purpose                                                        |
+| ----------------------------------- | -------------------------------------------------------------- |
+| `/onboarding`                       | First workspace creation for verified users with no membership |
+| `/app/*`                            | Customer app (requires current workspace membership)           |
+| `/app/team`                         | Members + invitations                                          |
+| `/app/settings/workspace`           | Workspace settings (not user profile)                          |
+| `/invitations/{token}`              | Accept workspace invitations                                   |
+| `/admin/workspaces`, `/admin/users` | Super Admin read-only lists (`users.is_admin`)                 |
+
 ## Prerequisites
 
 - PHP **8.3+** with `pdo_pgsql` (`composer.json`; 8.5+ recommended for local)

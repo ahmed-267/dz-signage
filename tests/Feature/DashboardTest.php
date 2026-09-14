@@ -9,6 +9,7 @@ test('guests are redirected to the login page', function () {
 
 test('authenticated users can visit the customer dashboard', function () {
     $user = User::factory()->create();
+    attachWorkspace($user);
 
     $this->actingAs($user)
         ->get(route('app.dashboard'))
@@ -23,8 +24,17 @@ test('unverified users are redirected to email verification', function () {
         ->assertRedirect(route('verification.notice'));
 });
 
+test('authenticated users without a workspace are redirected to onboarding', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('app.dashboard'))
+        ->assertRedirect(route('onboarding.show'));
+});
+
 test('app root redirects to the customer dashboard', function () {
     $user = User::factory()->create();
+    attachWorkspace($user);
 
     $this->actingAs($user)
         ->get('/app')

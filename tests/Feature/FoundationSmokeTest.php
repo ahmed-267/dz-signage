@@ -41,6 +41,7 @@ test('authenticated normal users can access the customer dashboard', function ()
     $user = User::factory()->create([
         'is_admin' => false,
     ]);
+    attachWorkspace($user);
 
     $this->actingAs($user)
         ->get(route('app.dashboard'))

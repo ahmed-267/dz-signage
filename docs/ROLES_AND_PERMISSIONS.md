@@ -1,72 +1,74 @@
-# DZ Signage — Roles & Permissions (Planned)
+# DZ Signage — Roles & Permissions
 
 All authorization must be enforced **server-side**. UI hiding alone is not security.
 
-**Current (Phase 0):** `User` implements `MustVerifyEmail`. Platform Super Admin is `users.is_admin` (not fillable; set via factory/seeder/admin tooling only). Workspace roles and policies are not implemented yet.
+**Current (Phase 1):** Workspace roles + policies are implemented for team/workspace administration. Product-module permissions (Media, Designs, etc.) remain future work.
 
-## Workspace roles (planned)
+Platform Super Admin remains `users.is_admin` (not fillable).
+
+## Workspace roles (implemented)
+
+Enum: `App\Enums\WorkspaceRole`
 
 ### Owner
 
-Full workspace control, including:
+Can:
 
-- Billing
-- Team
-- Workspace deletion
-- Screens
-- Publishing
-- Designs
-- All operational features
+- Update workspace settings
+- Invite/manage members
+- Change non-owner roles
+- Remove non-owner members
+- Access workspace administration
+
+Cannot (Phase 1):
+
+- Transfer ownership (blocked; future work)
+- Leave if sole Owner
+- Be removed by Admin
 
 ### Admin
 
-Operational control excluding sensitive ownership-only actions (e.g. workspace deletion, ownership transfer, billing ownership where reserved).
+Can:
 
-### Designer
+- Update workspace settings
+- Invite/manage non-owner members
 
-Primarily:
+Cannot:
 
-- Media
-- Templates (where permitted)
-- Screen Designs
+- Modify/remove Owner
+- Promote anyone to Owner
 
-### Content Manager
+### Designer / Content Manager / Location Manager
 
-Primarily:
+Basic workspace access (dashboard, read team list).
 
-- Screen Designs
-- Playlists
-- Schedules
-- Publishing
-
-### Location Manager
-
-Access limited to assigned Locations / Screens.
+Future design/content/location-scoped permissions are documented for later phases only.
 
 ### Viewer
 
-Read-only within the workspace scope granted.
+Read-only.
+
+Cannot:
+
+- Modify workspace
+- Invite users
+- Change roles
+- Remove members
 
 ## Super Admin (platform)
 
 Super Admin is **platform-level**. It is **not** a normal Workspace role.
 
-Future access includes:
+Phase 1 Super Admin can view:
 
-- Workspaces
-- Users
-- Screens
-- Billing
-- Templates (platform catalogue)
-- Platform operations
-- Support
-- System health
+- Workspaces list/detail (read-only)
+- Users list (read-only)
 
-Today’s scaffold uses `users.is_admin` + middleware for `/admin/*`. Expand carefully; never conflate Super Admin with Workspace Owner.
+Do **not** grant `/admin/*` via Workspace Owner.
 
 ## Isolation rules
 
-1. Workspace members only see data for workspaces they belong to.
-2. Location Managers are further scoped to assigned locations/screens.
-3. Super Admin may cross workspaces for support/ops — still audited.
-4. Player/device APIs authenticate devices, not end-user sessions (planned).
+1. Workspace members only act within membership-validated current workspace.
+2. Switching workspace requires membership.
+3. Invitation acceptance requires email match + valid pending token.
+4. Location Managers’ location scoping comes later when Locations exist.
