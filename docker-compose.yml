@@ -1,0 +1,38 @@
+services:
+    postgres:
+        image: postgres:16-alpine
+        container_name: dz-signage-postgres
+        restart: unless-stopped
+        ports:
+            - '5433:5432'
+        environment:
+            POSTGRES_DB: dz_signage
+            POSTGRES_USER: dz_signage
+            POSTGRES_PASSWORD: secret
+        volumes:
+            - dz_signage_postgres_data:/var/lib/postgresql/data
+            - ./docker/postgres:/docker-entrypoint-initdb.d:ro
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U dz_signage -d dz_signage']
+            interval: 5s
+            timeout: 5s
+            retries: 10
+
+    redis:
+        image: redis:7-alpine
+        container_name: dz-signage-redis
+        restart: unless-stopped
+        ports:
+            - '6379:6379'
+        command: ['redis-server', '--appendonly', 'yes']
+        volumes:
+            - dz_signage_redis_data:/data
+        healthcheck:
+            test: ['CMD', 'redis-cli', 'ping']
+            interval: 5s
+            timeout: 5s
+            retries: 10
+
+volumes:
+    dz_signage_postgres_data:
+    dz_signage_redis_data:
