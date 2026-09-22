@@ -27,11 +27,16 @@ Enum: `App\Enums\PlatformRole` on `users.platform_role`
 - Production staff accounts (no Business membership):
 
 ```bash
+# Laravel Cloud / non-interactive
+php artisan rmsignage:create-super-admin --from-env
+php artisan rmsignage:create-platform-admin --from-env
+
+# Local interactive (password prompted hidden)
 php artisan rmsignage:create-super-admin --name="Ahmed" --email="you@example.com"
 php artisan rmsignage:create-platform-admin --name="Sarah" --email="sarah@example.com"
 ```
 
-Password is prompted hidden (never a CLI flag). Accounts are email-verified immediately. Re-running is idempotent; use `--reset-password` to rotate credentials. Do **not** use `LocalDevSeeder` / `admin@dz.local` in production.
+`--from-env` reads `RMSIGNAGE_SUPER_ADMIN_*` / `RMSIGNAGE_PLATFORM_ADMIN_*` (name, email, password). Accounts are email-verified immediately. Re-running is idempotent. Do **not** use `LocalDevSeeder` / `admin@dz.local` in production.
 
 ### Capability split (`PlatformPermissions`)
 

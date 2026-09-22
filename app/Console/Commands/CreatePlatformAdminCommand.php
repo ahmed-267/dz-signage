@@ -8,13 +8,15 @@ use App\Support\Platform\PlatformStaffProvisioner;
 /**
  * Production-safe Platform Admin creation / promotion.
  *
- * Password is never accepted as a CLI flag (shell history risk).
+ * Local: interactive prompts (password never as a CLI flag).
+ * Laravel Cloud: --from-env (non-interactive; reads RMSIGNAGE_PLATFORM_ADMIN_*).
  */
 class CreatePlatformAdminCommand extends CreateSuperAdminCommand
 {
     protected $signature = 'rmsignage:create-platform-admin
                             {--name= : Staff display name}
                             {--email= : Staff email address}
+                            {--from-env : Read name/email/password from RMSIGNAGE_PLATFORM_ADMIN_* (non-interactive)}
                             {--force : Promote/update without interactive confirmation}
                             {--reset-password : Reset password when updating an existing user}';
 
@@ -26,6 +28,11 @@ class CreatePlatformAdminCommand extends CreateSuperAdminCommand
             $provisioner,
             PlatformRole::PlatformAdmin,
             'Platform Admin',
+            [
+                'name' => 'RMSIGNAGE_PLATFORM_ADMIN_NAME',
+                'email' => 'RMSIGNAGE_PLATFORM_ADMIN_EMAIL',
+                'password' => 'RMSIGNAGE_PLATFORM_ADMIN_PASSWORD',
+            ],
         );
     }
 }

@@ -82,14 +82,26 @@ Creates/refreshes only `demo@rmsignage.com` → **North & Bean Café** (`rmsigna
 
 ### Production platform staff accounts
 
-Do **not** seed `admin@dz.local` / `platform@dz.local` into production. Create staff with:
+Do **not** seed `admin@dz.local` / `platform@dz.local` into production.
+
+**Laravel Cloud (non-interactive):**
+
+```bash
+# Env: RMSIGNAGE_SUPER_ADMIN_NAME / _EMAIL / _PASSWORD
+php artisan rmsignage:create-super-admin --from-env
+
+# Env: RMSIGNAGE_PLATFORM_ADMIN_NAME / _EMAIL / _PASSWORD
+php artisan rmsignage:create-platform-admin --from-env
+```
+
+**Local interactive:**
 
 ```bash
 php artisan rmsignage:create-super-admin --name="Ahmed" --email="you@example.com"
 php artisan rmsignage:create-platform-admin --name="Sarah" --email="sarah@example.com"
 ```
 
-Password is entered hidden (never via flags). Accounts are verified immediately and are **not** attached to any Business. Login defaults to `/admin`. See `docs/ROLES_AND_PERMISSIONS.md`.
+Password is entered hidden (never via flags). Accounts are verified immediately and are **not** attached to any Business. Login defaults to `/admin`. See `docs/ROLES_AND_PERMISSIONS.md` and `docs/PRODUCTION.md`.
 
 ### Phase 1–5 surfaces
 
