@@ -1,5 +1,7 @@
-import { Head, Link } from '@inertiajs/react';
-import { Badge } from '@/components/ui/badge';
+import { Head, Link, router } from '@inertiajs/react';
+import { Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { AdminPageHeader } from '@/components/admin/admin-page-header';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -8,6 +10,9 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { ListPagination } from '@/components/ui/list-pagination';
+import { SortableTableHeader } from '@/components/ui/sortable-table-header';
 import {
     Table,
     TableBody,
@@ -16,47 +21,178 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useListSort } from '@/hooks/use-list-sort';
+import { adminSelectClassName } from '@/lib/admin-select-class';
+import { cn } from '@/lib/utils';
 import { workspaces as workspacesIndex } from '@/routes/admin';
 import { show as showWorkspace } from '@/routes/admin/workspaces';
 
 type WorkspaceRow = {
     id: number;
     name: string;
-    industry: string;
-    owner: string | null;
-    owner_email: string | null;
-    member_count: number;
-    created_at: string | null;
+    industry?: string | null;
+    industry_label?: string | null;
+    owner?: string | null;
+    owner_email?: string | null;
+    member_count?: number;
+    screen_count?: number;
+    created_at?: string | null;
+};
+
+type PaginatedMeta = {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number | null;
+    to: number | null;
 };
 
 type Paginated<T> = {
     data: T[];
-    links: Array<{
-        url: string | null;
-        label: string;
-        active: boolean;
-    }>;
+    meta: PaginatedMeta;
 };
+
+type FilterOption = { value: string; label: string };
 
 type Props = {
     workspaces: Paginated<WorkspaceRow>;
+    filters?: {
+        q?: string;
+        industry?: string;
+        sort?: string;
+        direction?: 'asc' | 'desc';
+        per_page?: number;
+    };
+    industries?: FilterOption[];
 };
 
-export default function AdminWorkspacesIndex({ workspaces }: Props) {
+type FilterPatch = Partial<{
+    q: string;
+    industry: string;
+    sort: string;
+    direction: string;
+    per_page: number;
+    page: number;
+}>;
+
+function formatDate(value?: string | null): string {
+    if (!value) {
+        return '—';
+    }
+
+    try {
+        return new Date(value).toLocaleDateString();
+    } catch {
+        return value;
+    }
+}
+
+export default function AdminWorkspacesIndex({
+    workspaces,
+    filters = {},
+    industries = [],
+}: Props) {
+    const [searchInput, setSearchInput] = useState(filters.q ?? '');
+    const perPage = filters.per_page ?? workspaces.meta.per_page ?? 20;
+
+    const { currentSort, currentDirection, onSort, ariaSort } = useListSort({
+        baseUrl: workspacesIndex.url(),
+        filters: {
+            q: filters.q,
+            industry: filters.industry,
+            sort: filters.sort,
+            direction: filters.direction,
+            per_page: perPage,
+        },
+        defaultSort: 'created',
+        defaultDirection: 'desc',
+    });
+
+    useEffect(() => {
+        setSearchInput(filters.q ?? '');
+    }, [filters.q]);
+
+    useEffect(() => {
+        const handle = window.setTimeout(() => {
+            if (searchInput === (filters.q ?? '')) {
+                return;
+            }
+            navigate({ q: searchInput, page: 1 });
+        }, 350);
+
+        return () => window.clearTimeout(handle);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- debounce against filters snapshot
+    }, [searchInput]);
+
+    function navigate(patch: FilterPatch) {
+        router.get(
+            workspacesIndex.url(),
+            {
+                q: patch.q ?? filters.q ?? '',
+                industry: patch.industry ?? filters.industry ?? 'all',
+                sort: patch.sort ?? filters.sort ?? 'created',
+                direction: patch.direction ?? filters.direction ?? 'desc',
+                per_page: patch.per_page ?? perPage,
+                ...(patch.page ? { page: patch.page } : {}),
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    }
+
+    const meta = workspaces.meta;
+
     return (
         <>
-            <Head title="Workspaces" />
-            <div className="flex h-full flex-1 flex-col gap-6 p-4 md:p-6">
-                <div>
-                    <div className="mb-1">
-                        <Badge variant="info">Super Admin</Badge>
+            <Head title="Businesses" />
+            <div
+                className="flex h-full flex-1 flex-col gap-6 p-4 md:p-6"
+                data-test="admin-workspaces"
+            >
+                <AdminPageHeader
+                    title="Businesses"
+                    description="Platform-wide business directory."
+                />
+
+                <div className="flex flex-col gap-3 sm:flex-row">
+                    <div className="relative flex-1 sm:max-w-md">
+                        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                        <Input
+                            data-test="admin-workspaces-search"
+                            value={searchInput}
+                            onChange={(event) =>
+                                setSearchInput(event.target.value)
+                            }
+                            placeholder="Search businesses..."
+                            className="pl-9"
+                            aria-label="Search businesses"
+                        />
                     </div>
-                    <h1 className="font-display text-2xl font-semibold tracking-tight">
-                        Workspaces
-                    </h1>
-                    <p className="text-muted-foreground mt-1 text-sm">
-                        Platform-wide workspace directory.
-                    </p>
+                    {industries.length > 0 ? (
+                        <select
+                            className={cn(adminSelectClassName, 'sm:w-52')}
+                            value={filters.industry ?? 'all'}
+                            aria-label="Industry filter"
+                            data-test="admin-workspaces-industry"
+                            onChange={(event) =>
+                                navigate({
+                                    industry: event.target.value,
+                                    page: 1,
+                                })
+                            }
+                        >
+                            <option value="all">All industries</option>
+                            {industries.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
+                    ) : null}
                 </div>
 
                 <Card className="shadow-none">
@@ -65,7 +201,7 @@ export default function AdminWorkspacesIndex({ workspaces }: Props) {
                             All workspaces
                         </CardTitle>
                         <CardDescription>
-                            {workspaces.data.length} shown on this page.
+                            {meta.total} total across the platform.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -73,10 +209,70 @@ export default function AdminWorkspacesIndex({ workspaces }: Props) {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Industry</TableHead>
+                                        <TableHead aria-sort={ariaSort('name')}>
+                                            <SortableTableHeader
+                                                label="Name"
+                                                column="name"
+                                                currentSort={currentSort}
+                                                currentDirection={
+                                                    currentDirection
+                                                }
+                                                onSort={onSort}
+                                            />
+                                        </TableHead>
+                                        <TableHead
+                                            aria-sort={ariaSort('industry')}
+                                        >
+                                            <SortableTableHeader
+                                                label="Industry"
+                                                column="industry"
+                                                currentSort={currentSort}
+                                                currentDirection={
+                                                    currentDirection
+                                                }
+                                                onSort={onSort}
+                                            />
+                                        </TableHead>
                                         <TableHead>Owner</TableHead>
-                                        <TableHead>Members</TableHead>
+                                        <TableHead
+                                            aria-sort={ariaSort('members')}
+                                        >
+                                            <SortableTableHeader
+                                                label="Members"
+                                                column="members"
+                                                currentSort={currentSort}
+                                                currentDirection={
+                                                    currentDirection
+                                                }
+                                                onSort={onSort}
+                                            />
+                                        </TableHead>
+                                        <TableHead
+                                            aria-sort={ariaSort('screens')}
+                                        >
+                                            <SortableTableHeader
+                                                label="TVs"
+                                                column="screens"
+                                                currentSort={currentSort}
+                                                currentDirection={
+                                                    currentDirection
+                                                }
+                                                onSort={onSort}
+                                            />
+                                        </TableHead>
+                                        <TableHead
+                                            aria-sort={ariaSort('created')}
+                                        >
+                                            <SortableTableHeader
+                                                label="Created"
+                                                column="created"
+                                                currentSort={currentSort}
+                                                currentDirection={
+                                                    currentDirection
+                                                }
+                                                onSort={onSort}
+                                            />
+                                        </TableHead>
                                         <TableHead className="text-right">
                                             Open
                                         </TableHead>
@@ -86,10 +282,19 @@ export default function AdminWorkspacesIndex({ workspaces }: Props) {
                                     {workspaces.data.map((workspace) => (
                                         <TableRow key={workspace.id}>
                                             <TableCell className="font-medium">
-                                                {workspace.name}
+                                                <Link
+                                                    href={showWorkspace.url({
+                                                        workspace: workspace.id,
+                                                    })}
+                                                    className="hover:underline"
+                                                >
+                                                    {workspace.name}
+                                                </Link>
                                             </TableCell>
                                             <TableCell>
-                                                {workspace.industry}
+                                                {workspace.industry_label ??
+                                                    workspace.industry ??
+                                                    '—'}
                                             </TableCell>
                                             <TableCell>
                                                 <div>
@@ -102,7 +307,15 @@ export default function AdminWorkspacesIndex({ workspaces }: Props) {
                                                 ) : null}
                                             </TableCell>
                                             <TableCell>
-                                                {workspace.member_count}
+                                                {workspace.member_count ?? 0}
+                                            </TableCell>
+                                            <TableCell>
+                                                {workspace.screen_count ?? '—'}
+                                            </TableCell>
+                                            <TableCell>
+                                                {formatDate(
+                                                    workspace.created_at,
+                                                )}
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <Button
@@ -138,8 +351,13 @@ export default function AdminWorkspacesIndex({ workspaces }: Props) {
                                         {workspace.name}
                                     </div>
                                     <div className="text-muted-foreground text-sm">
-                                        {workspace.industry} ·{' '}
-                                        {workspace.member_count} members
+                                        {workspace.industry_label ??
+                                            workspace.industry ??
+                                            '—'}{' '}
+                                        · {workspace.member_count ?? 0} members
+                                        {workspace.screen_count != null
+                                            ? ` · ${workspace.screen_count} screens`
+                                            : ''}
                                     </div>
                                     <div className="text-sm">
                                         Owner: {workspace.owner ?? '—'}
@@ -157,44 +375,19 @@ export default function AdminWorkspacesIndex({ workspaces }: Props) {
                             ))}
                         </div>
 
-                        {workspaces.links.length > 3 ? (
-                            <div className="flex flex-wrap gap-2">
-                                {workspaces.links.map((link, index) =>
-                                    link.url ? (
-                                        <Button
-                                            key={`${link.label}-${index}`}
-                                            size="sm"
-                                            variant={
-                                                link.active
-                                                    ? 'default'
-                                                    : 'outline'
-                                            }
-                                            asChild
-                                        >
-                                            <Link href={link.url}>
-                                                <span
-                                                    dangerouslySetInnerHTML={{
-                                                        __html: link.label,
-                                                    }}
-                                                />
-                                            </Link>
-                                        </Button>
-                                    ) : (
-                                        <Button
-                                            key={`${link.label}-${index}`}
-                                            size="sm"
-                                            variant="outline"
-                                            disabled
-                                        >
-                                            <span
-                                                dangerouslySetInnerHTML={{
-                                                    __html: link.label,
-                                                }}
-                                            />
-                                        </Button>
-                                    ),
-                                )}
-                            </div>
+                        {meta.last_page > 1 || meta.total > perPage ? (
+                            <ListPagination
+                                page={meta.current_page}
+                                pageCount={meta.last_page}
+                                total={meta.total}
+                                from={meta.from}
+                                to={meta.to}
+                                perPage={perPage}
+                                onPageChange={(page) => navigate({ page })}
+                                onPerPageChange={(per_page) =>
+                                    navigate({ per_page, page: 1 })
+                                }
+                            />
                         ) : null}
                     </CardContent>
                 </Card>
@@ -206,7 +399,7 @@ export default function AdminWorkspacesIndex({ workspaces }: Props) {
 AdminWorkspacesIndex.layout = {
     breadcrumbs: [
         {
-            title: 'Workspaces',
+            title: 'Businesses',
             href: workspacesIndex(),
         },
     ],

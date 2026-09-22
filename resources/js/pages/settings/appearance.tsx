@@ -27,7 +27,7 @@ export default function Appearance() {
                     <CardHeader>
                         <CardTitle className="text-base">Theme</CardTitle>
                         <CardDescription>
-                            Updates instantly across DZ Signage without a page
+                            Updates instantly across RMSignage without a page
                             reload.
                         </CardDescription>
                     </CardHeader>

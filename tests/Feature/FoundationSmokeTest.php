@@ -6,14 +6,14 @@ use Laravel\Fortify\Features;
 
 test('the application boots with expected configuration', function () {
     expect(app()->isBooted())->toBeTrue();
-    expect(config('app.name'))->toBe('DZ Signage');
+    expect(config('app.name'))->toBe('RMSignage');
     expect(config('database.default'))->toBe('pgsql');
 });
 
 test('the public homepage responds successfully', function () {
     $this->get(route('home'))
         ->assertOk()
-        ->assertInertia(fn ($page) => $page->component('welcome'));
+        ->assertInertia(fn ($page) => $page->component('marketing/home'));
 });
 
 test('the login page responds successfully', function () {

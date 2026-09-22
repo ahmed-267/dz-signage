@@ -7,6 +7,7 @@ use App\Mail\WorkspaceInvitationMail;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
+use App\Support\Billing\BillingEntitlement;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
@@ -37,6 +38,17 @@ class InviteWorkspaceMember
             throw ValidationException::withMessages([
                 'email' => 'A pending invitation already exists for this email.',
             ]);
+        }
+
+        if (BillingEntitlement::enforce()) {
+            $teamLimit = BillingEntitlement::teamLimit($workspace);
+            $teamUsage = BillingEntitlement::teamUsage($workspace);
+
+            if ($teamLimit !== null && $teamUsage >= $teamLimit) {
+                throw ValidationException::withMessages([
+                    'email' => "Your plan allows {$teamLimit} team members. Upgrade your plan to invite more people.",
+                ]);
+            }
         }
 
         $plainToken = WorkspaceInvitation::generatePlainToken();

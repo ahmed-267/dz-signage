@@ -21,7 +21,11 @@ class UpdateWorkspaceMemberRoleRequest extends FormRequest
         return [
             'role' => [
                 'required',
-                Rule::enum(WorkspaceRole::class)->except([WorkspaceRole::Owner]),
+                Rule::enum(WorkspaceRole::class)->except([
+                    WorkspaceRole::Owner,
+                    WorkspaceRole::Viewer,
+                    WorkspaceRole::LocationManager,
+                ]),
             ],
         ];
     }

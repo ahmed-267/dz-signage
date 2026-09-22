@@ -64,7 +64,7 @@ export default function InvitationInvalid({ reason }: Props) {
                     </CardHeader>
                     <CardContent>
                         <Button className="w-full" asChild>
-                            <Link href={home()}>Back to DZ Signage</Link>
+                            <Link href={home()}>Back to RMSignage</Link>
                         </Button>
                     </CardContent>
                 </Card>

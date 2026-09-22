@@ -18,9 +18,9 @@ test.describe('workspace phase 1 flows', () => {
         await page.goto('/app/workspaces/create');
         await page.locator('#name').fill('Second Workspace');
         await page.locator('#industry').selectOption({ index: 2 });
-        await page.locator('#country').fill('United Kingdom');
+        await page.locator('#country').selectOption('United Kingdom');
         await page.locator('#timezone').selectOption('Europe/London');
-        await page.getByRole('button', { name: /create workspace/i }).click();
+        await page.getByRole('button', { name: /create business/i }).click();
         await page.waitForURL(/\/app\/dashboard/);
 
         await expect(page.getByText('Second Workspace').first()).toBeVisible();

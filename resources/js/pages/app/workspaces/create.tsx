@@ -23,6 +23,7 @@ type Option = {
 type Props = {
     industries: Option[];
     timezones: string[];
+    countries: Option[];
 };
 
 const selectClassName = cn(
@@ -31,7 +32,11 @@ const selectClassName = cn(
     'disabled:cursor-not-allowed disabled:opacity-50',
 );
 
-export default function CreateWorkspace({ industries, timezones }: Props) {
+export default function CreateWorkspace({
+    industries,
+    timezones,
+    countries,
+}: Props) {
     const { data, setData, post, processing, errors } = useForm<{
         name: string;
         industry: string;
@@ -41,7 +46,10 @@ export default function CreateWorkspace({ industries, timezones }: Props) {
     }>({
         name: '',
         industry: industries[0]?.value ?? '',
-        country: '',
+        country:
+            countries.find((c) => c.value === 'United Kingdom')?.value ??
+            countries[0]?.value ??
+            '',
         timezone:
             Intl.DateTimeFormat().resolvedOptions().timeZone ||
             timezones[0] ||
@@ -58,14 +66,14 @@ export default function CreateWorkspace({ industries, timezones }: Props) {
 
     return (
         <>
-            <Head title="Create workspace" />
+            <Head title="Create business" />
             <div className="flex h-full flex-1 flex-col gap-6 p-4 md:p-6">
                 <div>
                     <h1 className="font-display text-2xl font-semibold tracking-tight">
-                        Create workspace
+                        Create business
                     </h1>
                     <p className="text-muted-foreground mt-1 text-sm">
-                        Add another organisation workspace to your account.
+                        Add another business to your account.
                     </p>
                 </div>
 
@@ -75,7 +83,7 @@ export default function CreateWorkspace({ industries, timezones }: Props) {
                             Organisation details
                         </CardTitle>
                         <CardDescription>
-                            These settings can be updated later from workspace
+                            These settings can be updated later from business
                             settings.
                         </CardDescription>
                     </CardHeader>
@@ -118,15 +126,24 @@ export default function CreateWorkspace({ industries, timezones }: Props) {
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="country">Country</Label>
-                                <Input
+                                <select
                                     id="country"
+                                    className={selectClassName}
                                     value={data.country}
                                     onChange={(event) =>
                                         setData('country', event.target.value)
                                     }
                                     required
-                                    placeholder="United Kingdom"
-                                />
+                                >
+                                    {countries.map((country) => (
+                                        <option
+                                            key={country.value}
+                                            value={country.value}
+                                        >
+                                            {country.label}
+                                        </option>
+                                    ))}
+                                </select>
                                 <InputError message={errors.country} />
                             </div>
                             <div className="grid gap-2">
@@ -164,7 +181,7 @@ export default function CreateWorkspace({ industries, timezones }: Props) {
                             </div>
                             <Button type="submit" disabled={processing}>
                                 {processing ? <Spinner /> : null}
-                                Create workspace
+                                Create business
                             </Button>
                         </form>
                     </CardContent>
@@ -177,7 +194,7 @@ export default function CreateWorkspace({ industries, timezones }: Props) {
 CreateWorkspace.layout = {
     breadcrumbs: [
         {
-            title: 'Create workspace',
+            title: 'Create business',
             href: create(),
         },
     ],

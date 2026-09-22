@@ -26,12 +26,14 @@ class SecurityTest extends TestCase
         ]);
 
         $user = User::factory()->create();
+        attachWorkspace($user);
 
         $this->actingAs($user)
             ->withSession(['auth.password_confirmed_at' => time()])
-            ->get(route('security.edit'))
+            ->get(route('app.settings.security'))
             ->assertInertia(fn (Assert $page) => $page
-                ->component('settings/security')
+                ->component('app/settings/index')
+                ->where('tab', 'security')
                 ->where('canManagePasskeys', true)
                 ->where('passkeys', [])
                 ->where('canManageTwoFactor', true)
@@ -44,6 +46,7 @@ class SecurityTest extends TestCase
         $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
 
         $user = User::factory()->create();
+        attachWorkspace($user);
 
         Features::twoFactorAuthentication([
             'confirm' => true,
@@ -51,7 +54,7 @@ class SecurityTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)
-            ->get(route('security.edit'));
+            ->get(route('app.settings.security'));
 
         $response->assertRedirect(route('password.confirm'));
     }
@@ -63,13 +66,15 @@ class SecurityTest extends TestCase
         config(['fortify.features' => []]);
 
         $user = User::factory()->create();
+        attachWorkspace($user);
 
         $this->actingAs($user)
             ->withSession(['auth.password_confirmed_at' => time()])
-            ->get(route('security.edit'))
+            ->get(route('app.settings.security'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('settings/security')
+                ->component('app/settings/index')
+                ->where('tab', 'security')
                 ->where('canManagePasskeys', false)
                 ->where('passkeys', [])
                 ->where('canManageTwoFactor', false)
@@ -81,10 +86,11 @@ class SecurityTest extends TestCase
     public function test_password_can_be_updated()
     {
         $user = User::factory()->create();
+        attachWorkspace($user);
 
         $response = $this
             ->actingAs($user)
-            ->from(route('security.edit'))
+            ->from(route('app.settings.security'))
             ->put(route('user-password.update'), [
                 'current_password' => 'password',
                 'password' => 'new-password',
@@ -93,7 +99,7 @@ class SecurityTest extends TestCase
 
         $response
             ->assertSessionHasNoErrors()
-            ->assertRedirect(route('security.edit'));
+            ->assertRedirect(route('app.settings.security'));
 
         $this->assertTrue(Hash::check('new-password', $user->refresh()->password));
     }
@@ -101,10 +107,11 @@ class SecurityTest extends TestCase
     public function test_correct_password_must_be_provided_to_update_password()
     {
         $user = User::factory()->create();
+        attachWorkspace($user);
 
         $response = $this
             ->actingAs($user)
-            ->from(route('security.edit'))
+            ->from(route('app.settings.security'))
             ->put(route('user-password.update'), [
                 'current_password' => 'wrong-password',
                 'password' => 'new-password',
@@ -113,6 +120,6 @@ class SecurityTest extends TestCase
 
         $response
             ->assertSessionHasErrors('current_password')
-            ->assertRedirect(route('security.edit'));
+            ->assertRedirect(route('app.settings.security'));
     }
 }

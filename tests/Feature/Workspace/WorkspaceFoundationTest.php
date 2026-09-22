@@ -2,6 +2,7 @@
 
 use App\Enums\WorkspaceIndustry;
 use App\Enums\WorkspaceRole;
+use App\Models\AuditLog;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceMember;
@@ -104,6 +105,9 @@ test('user cannot access another workspace team page via current workspace isola
         ->assertInertia(fn ($page) => $page
             ->component('app/team')
             ->where('members.0.email', $ownerB->email)
+            ->has('member_count')
+            ->has('member_limit')
+            ->has('plan_name')
             ->etc()
         );
 
@@ -184,4 +188,44 @@ test('workspace owner without platform admin cannot access super admin', functio
     $this->actingAs($owner)
         ->get(route('admin.workspaces'))
         ->assertForbidden();
+});
+
+test('super admin soft deletes a business only after the name is confirmed', function () {
+    $admin = User::factory()->admin()->create();
+    $owner = User::factory()->create();
+    $workspace = createWorkspaceFor($owner, ['name' => 'North and Bean']);
+    $owner->forceFill(['current_workspace_id' => $workspace->id])->save();
+
+    $this->actingAs($admin)
+        ->delete(route('admin.workspaces.destroy', $workspace), [
+            'confirm_name' => 'Wrong name',
+        ])
+        ->assertSessionHasErrors('confirm_name');
+
+    expect(Workspace::query()->whereKey($workspace->id)->exists())->toBeTrue();
+
+    $this->actingAs($admin)
+        ->delete(route('admin.workspaces.destroy', $workspace), [
+            'confirm_name' => 'North and Bean',
+        ])
+        ->assertRedirect(route('admin.workspaces'));
+
+    expect(Workspace::query()->whereKey($workspace->id)->exists())->toBeFalse()
+        ->and(Workspace::withTrashed()->whereKey($workspace->id)->exists())->toBeTrue()
+        ->and($owner->fresh()->current_workspace_id)->toBeNull()
+        ->and(AuditLog::query()->where('action', 'workspace.soft_deleted')->where('workspace_id', $workspace->id)->exists())->toBeTrue();
+});
+
+test('platform admin cannot delete a business', function () {
+    $staff = User::factory()->platformAdmin()->create();
+    $owner = User::factory()->create();
+    $workspace = createWorkspaceFor($owner, ['name' => 'Keep Me']);
+
+    $this->actingAs($staff)
+        ->delete(route('admin.workspaces.destroy', $workspace), [
+            'confirm_name' => 'Keep Me',
+        ])
+        ->assertForbidden();
+
+    expect(Workspace::query()->whereKey($workspace->id)->exists())->toBeTrue();
 });

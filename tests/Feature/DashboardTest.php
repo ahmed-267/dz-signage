@@ -13,7 +13,13 @@ test('authenticated users can visit the customer dashboard', function () {
 
     $this->actingAs($user)
         ->get(route('app.dashboard'))
-        ->assertOk();
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('app/dashboard')
+            ->has('recentDeployments')
+            ->has('recentScreens')
+            ->has('contentActivity')
+        );
 });
 
 test('unverified users are redirected to email verification', function () {

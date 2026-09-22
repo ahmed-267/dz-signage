@@ -1,6 +1,6 @@
-# DZ Signage
+# RMSignage
 
-Production foundation for the **DZ Signage** SaaS platform (Phase 0).
+Production foundation for the **RMSignage** SaaS platform (Phase 0).
 
 This phase scaffolds the application stack only. Product features (media, templates, playlists, schedules, publishing, billing, AI, widgets, screen pairing) are intentionally deferred.
 

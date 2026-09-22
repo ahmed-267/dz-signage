@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Workspaces\StoreWorkspaceRequest;
 use App\Http\Requests\Workspaces\UpdateWorkspaceRequest;
 use App\Models\Workspace;
+use App\Support\CountryCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -25,6 +26,7 @@ class WorkspaceController extends Controller
                 'label' => $i->label(),
             ])->values(),
             'timezones' => timezone_identifiers_list(),
+            'countries' => CountryCatalog::options(),
         ]);
     }
 
@@ -48,27 +50,9 @@ class WorkspaceController extends Controller
             ->with('success', 'Switched workspace.');
     }
 
-    public function edit(Request $request): Response
+    public function edit(): RedirectResponse
     {
-        $workspace = $request->user()->currentWorkspace;
-        abort_unless($workspace !== null, 404);
-        $this->authorize('update', $workspace);
-
-        return Inertia::render('app/workspace-settings', [
-            'workspace' => [
-                'id' => $workspace->id,
-                'name' => $workspace->name,
-                'industry' => $workspace->industry->value,
-                'country' => $workspace->country,
-                'timezone' => $workspace->timezone,
-                'logo_url' => $workspace->logoUrl(),
-            ],
-            'industries' => collect(WorkspaceIndustry::cases())->map(fn ($i) => [
-                'value' => $i->value,
-                'label' => $i->label(),
-            ])->values(),
-            'timezones' => timezone_identifiers_list(),
-        ]);
+        return redirect()->route('app.settings.tab', ['tab' => 'workspace']);
     }
 
     public function update(UpdateWorkspaceRequest $request, UpdateWorkspace $updateWorkspace): RedirectResponse
@@ -80,7 +64,7 @@ class WorkspaceController extends Controller
         $updateWorkspace->handle($workspace, $request->validated());
 
         return redirect()
-            ->route('app.workspace_settings.edit')
+            ->route('app.settings.tab', ['tab' => 'workspace'])
             ->with('success', 'Workspace settings saved.');
     }
 }

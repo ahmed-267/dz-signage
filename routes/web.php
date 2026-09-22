@@ -1,9 +1,10 @@
 <?php
 
+use App\Http\Controllers\HealthController;
 use App\Http\Controllers\InvitationController;
+use App\Http\Controllers\LandingController;
 use App\Http\Controllers\Onboarding\OnboardingController;
 use Illuminate\Support\Facades\Route;
-use Laravel\Fortify\Features;
 
 /*
 |--------------------------------------------------------------------------
@@ -11,9 +12,10 @@ use Laravel\Fortify\Features;
 |--------------------------------------------------------------------------
 */
 
-Route::inertia('/', 'welcome', [
-    'canRegister' => Features::enabled(Features::registration()),
-])->name('home');
+Route::get('/', LandingController::class)->name('home');
+
+Route::get('/health', [HealthController::class, 'live'])->name('health');
+Route::get('/ready', [HealthController::class, 'ready'])->name('ready');
 
 Route::middleware(['auth', 'verified', 'onboarding'])
     ->prefix('onboarding')

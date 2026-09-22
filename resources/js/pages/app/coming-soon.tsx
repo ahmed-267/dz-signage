@@ -13,7 +13,7 @@ export default function ComingSoon({ title }: Props) {
             <div className="flex h-full flex-1 flex-col p-4 md:p-6">
                 <EmptyState
                     title={title}
-                    description="This area is reserved for a future DZ Signage feature. Navigation and routing are ready for later phases."
+                    description="This area is reserved for a future RMSignage feature. Navigation and routing are ready for later phases."
                     className="min-h-[50vh] flex-1"
                 />
             </div>

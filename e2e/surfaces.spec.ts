@@ -4,7 +4,7 @@ test.describe('application surfaces', () => {
     test('landing page loads', async ({ page }) => {
         await page.goto('/');
 
-        await expect(page.getByText('DZ Signage').first()).toBeVisible();
+        await expect(page.getByText('RMSignage').first()).toBeVisible();
         await expect(
             page.getByRole('link', { name: 'Get Started' }).first(),
         ).toBeVisible();
@@ -36,11 +36,13 @@ test.describe('application surfaces', () => {
         await expect(page).toHaveURL(/\/login/);
     });
 
-    test('player renders standalone placeholder', async ({ page }) => {
+    test('player renders standalone pairing surface', async ({ page }) => {
         await page.goto('/player');
 
-        await expect(page.getByText('DZ Signage Player')).toBeVisible();
-        await expect(page.getByText('Player Ready')).toBeVisible();
+        await expect(page.getByTestId('player-root')).toBeVisible();
+        await expect(page.getByTestId('player-pairing')).toBeVisible({
+            timeout: 15_000,
+        });
         await expect(page.getByText('Dashboard')).toHaveCount(0);
         await expect(page.getByText('Super Admin')).toHaveCount(0);
     });

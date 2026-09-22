@@ -1,4 +1,9 @@
 export type * from './auth';
+export type * from './layout-schema';
+export type * from './media';
 export type * from './navigation';
+export type * from './screen';
+export type * from './screen-design';
+export type * from './template';
 export type * from './ui';
 export type * from './workspace';

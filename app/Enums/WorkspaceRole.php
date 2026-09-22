@@ -26,11 +26,11 @@ enum WorkspaceRole: string
     public function description(): string
     {
         return match ($this) {
-            self::Owner => 'Full control including billing and team',
-            self::Admin => 'Manage operational platform settings and team',
-            self::Designer => 'Templates, media and designs',
-            self::ContentManager => 'Designs, playlists and schedules',
-            self::LocationManager => 'Assigned locations only',
+            self::Owner => 'Full Business control including billing and team',
+            self::Admin => 'Broad operational control for the Business (not platform Admin)',
+            self::Designer => 'Browse Templates, manage Media and Screen Designs',
+            self::ContentManager => 'Media, designs, playlists, schedules and publishing',
+            self::LocationManager => 'Assigned locations and their screens',
             self::Viewer => 'Read-only access',
         };
     }
@@ -44,8 +44,6 @@ enum WorkspaceRole: string
             self::Admin,
             self::Designer,
             self::ContentManager,
-            self::LocationManager,
-            self::Viewer,
         ];
     }
 
@@ -68,5 +66,127 @@ enum WorkspaceRole: string
     public function isOwner(): bool
     {
         return $this === self::Owner;
+    }
+
+    public function canViewBilling(): bool
+    {
+        return match ($this) {
+            self::Owner, self::Admin => true,
+            default => false,
+        };
+    }
+
+    /**
+     * Billing management is Owner-only until a richer billing phase exists.
+     */
+    public function canManageBilling(): bool
+    {
+        return $this === self::Owner;
+    }
+
+    public function canViewAnalytics(): bool
+    {
+        return match ($this) {
+            self::Owner, self::Admin, self::Designer, self::ContentManager, self::Viewer => true,
+            self::LocationManager => true,
+        };
+    }
+
+    public function canViewMedia(): bool
+    {
+        return true;
+    }
+
+    public function canManageMedia(): bool
+    {
+        return match ($this) {
+            self::Owner, self::Admin, self::Designer, self::ContentManager => true,
+            self::LocationManager, self::Viewer => false,
+        };
+    }
+
+    public function canDeleteMedia(): bool
+    {
+        return $this->canManageMedia();
+    }
+
+    public function canViewTemplates(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Workspace roles never manage master Templates.
+     * Templates are platform-owned (Super Admin / Admin).
+     */
+    public function canManageTemplates(): bool
+    {
+        return false;
+    }
+
+    public function canPublishTemplates(): bool
+    {
+        return false;
+    }
+
+    /**
+     * Future Screen Designs (Phase 4) — intent flags for nav/docs/tests.
+     */
+    public function canManageScreenDesigns(): bool
+    {
+        return match ($this) {
+            self::Owner, self::Admin, self::Designer, self::ContentManager => true,
+            default => false,
+        };
+    }
+
+    public function canManagePlaylists(): bool
+    {
+        return match ($this) {
+            self::Owner, self::Admin, self::ContentManager => true,
+            default => false,
+        };
+    }
+
+    public function canManageSchedules(): bool
+    {
+        return $this->canManagePlaylists();
+    }
+
+    public function canPublishContent(): bool
+    {
+        return match ($this) {
+            self::Owner, self::Admin, self::ContentManager => true,
+            default => false,
+        };
+    }
+
+    public function canManageScreens(): bool
+    {
+        return match ($this) {
+            self::Owner, self::Admin, self::LocationManager => true,
+            default => false,
+        };
+    }
+
+    public function canManageLocations(): bool
+    {
+        return $this->canManageScreens();
+    }
+
+    /**
+     * Brand Kit — Owner / Admin / Designer may edit; all members may view.
+     */
+    public function canManageBrandKit(): bool
+    {
+        return match ($this) {
+            self::Owner, self::Admin, self::Designer => true,
+            default => false,
+        };
+    }
+
+    public function canViewBrandKit(): bool
+    {
+        return true;
     }
 }

@@ -1,8 +1,6 @@
 import { Link, router } from '@inertiajs/react';
-import { LogOut, Settings } from 'lucide-react';
-import AppearanceTabs from '@/components/appearance-tabs';
+import { LogOut } from 'lucide-react';
 import {
-    DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
@@ -10,7 +8,6 @@ import {
 import { UserInfo } from '@/components/user-info';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
 import { logout } from '@/routes';
-import { edit } from '@/routes/profile';
 import type { User } from '@/types';
 
 type Props = {
@@ -32,30 +29,6 @@ export function UserMenuContent({ user }: Props) {
                     <UserInfo user={user} showEmail={true} />
                 </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-                <DropdownMenuItem asChild>
-                    <Link
-                        className="block w-full cursor-pointer"
-                        href={edit()}
-                        prefetch
-                        onClick={cleanup}
-                    >
-                        <Settings className="mr-2" />
-                        Settings
-                    </Link>
-                </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <div
-                className="px-2 py-2"
-                onPointerDown={(event) => event.preventDefault()}
-            >
-                <p className="text-muted-foreground mb-2 px-1 text-xs font-medium tracking-wide uppercase">
-                    Theme
-                </p>
-                <AppearanceTabs size="sm" className="w-full justify-between" />
-            </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
                 <Link

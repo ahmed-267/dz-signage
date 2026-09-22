@@ -201,7 +201,7 @@ test('owner can update workspace settings', function () {
             'country' => 'Canada',
             'timezone' => 'America/Toronto',
         ])
-        ->assertRedirect(route('app.workspace_settings.edit'));
+        ->assertRedirect(route('app.settings.tab', ['tab' => 'workspace']));
 
     expect($owner->fresh()->currentWorkspace->name)->toBe('Updated Name')
         ->and($owner->fresh()->currentWorkspace->timezone)->toBe('America/Toronto');

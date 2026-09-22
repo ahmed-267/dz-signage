@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PlatformRole;
 use App\Enums\WorkspaceRole;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -23,6 +24,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string $name
  * @property string $email
  * @property bool $is_admin
+ * @property PlatformRole|null $platform_role
  * @property int|null $current_workspace_id
  * @property Carbon|null $email_verified_at
  * @property string $password
@@ -41,11 +43,59 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     use HasFactory, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
 
     /**
-     * Whether this user is a platform Super Admin.
+     * Platform Super Admin (legacy flag kept in sync with platform_role).
      */
     public function isAdmin(): bool
     {
+        return $this->isSuperAdmin();
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        if ($this->platform_role === PlatformRole::SuperAdmin) {
+            return true;
+        }
+
         return (bool) $this->is_admin;
+    }
+
+    public function isPlatformAdmin(): bool
+    {
+        return $this->platform_role === PlatformRole::PlatformAdmin;
+    }
+
+    public function isPlatformStaff(): bool
+    {
+        return $this->platformRole() !== null;
+    }
+
+    public function platformRole(): ?PlatformRole
+    {
+        if ($this->platform_role instanceof PlatformRole) {
+            return $this->platform_role;
+        }
+
+        if ((bool) $this->is_admin) {
+            return PlatformRole::SuperAdmin;
+        }
+
+        return null;
+    }
+
+    public function canManagePlatformTemplates(): bool
+    {
+        return $this->platformRole()?->canManagePlatformTemplates() ?? false;
+    }
+
+    /**
+     * Assign a platform role and keep legacy is_admin in sync for Super Admin.
+     */
+    public function assignPlatformRole(?PlatformRole $role): void
+    {
+        $this->forceFill([
+            'platform_role' => $role,
+            'is_admin' => $role === PlatformRole::SuperAdmin,
+        ])->save();
     }
 
     /**
@@ -71,6 +121,17 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     {
         return $this->belongsToMany(Workspace::class, 'workspace_members')
             ->withPivot(['id', 'role'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Locations this user manages as a Location Manager.
+     *
+     * @return BelongsToMany<Location, $this>
+     */
+    public function managedLocations(): BelongsToMany
+    {
+        return $this->belongsToMany(Location::class, 'location_user')
             ->withTimestamps();
     }
 
@@ -112,6 +173,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
             'is_admin' => 'boolean',
+            'platform_role' => PlatformRole::class,
         ];
     }
 }

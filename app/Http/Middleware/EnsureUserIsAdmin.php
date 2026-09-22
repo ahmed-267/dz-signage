@@ -9,7 +9,7 @@ use Symfony\Component\HttpFoundation\Response;
 class EnsureUserIsAdmin
 {
     /**
-     * Restrict access to platform Super Admin users.
+     * Restrict access to RMSignage platform staff (Super Admin or Admin).
      *
      * @param  Closure(Request): Response  $next
      */
@@ -17,7 +17,7 @@ class EnsureUserIsAdmin
     {
         $user = $request->user();
 
-        if (! $user || ! $user->isAdmin()) {
+        if (! $user || ! $user->isPlatformStaff()) {
             abort(403);
         }
 

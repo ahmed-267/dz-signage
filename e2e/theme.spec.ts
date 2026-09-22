@@ -7,13 +7,13 @@ test.describe('theme preference', () => {
     }) => {
         await registerCustomer(page);
 
-        // Open the sidebar user menu (theme selector lives here).
-        await page.getByTestId('sidebar-menu-button').click();
+        const themeToggle = page.getByTestId('theme-toggle');
+        await expect(themeToggle).toBeVisible({ timeout: 15_000 });
         await expect(
             page.getByRole('radiogroup', { name: 'Theme' }),
         ).toBeVisible();
 
-        await page.getByRole('radio', { name: 'Dark' }).click();
+        await themeToggle.getByRole('radio', { name: 'Dark' }).click();
         await expect(page.locator('html')).toHaveClass(/dark/);
         await expect(
             page.evaluate(() => localStorage.getItem('appearance')),
@@ -21,9 +21,12 @@ test.describe('theme preference', () => {
 
         await page.reload();
         await expect(page.locator('html')).toHaveClass(/dark/);
+        await expect(page.getByTestId('theme-toggle')).toBeVisible();
 
-        await page.getByTestId('sidebar-menu-button').click();
-        await page.getByRole('radio', { name: 'Light' }).click();
+        await page
+            .getByTestId('theme-toggle')
+            .getByRole('radio', { name: 'Light' })
+            .click();
         await expect(page.locator('html')).not.toHaveClass(/dark/);
         await expect(
             page.evaluate(() => localStorage.getItem('appearance')),

@@ -23,7 +23,7 @@ class WorkspaceInvitationMail extends Mailable
         $workspace = $this->invitation->workspace;
 
         return new Envelope(
-            subject: 'You are invited to join '.$workspace->name.' on DZ Signage',
+            subject: 'You are invited to join '.$workspace->name.' on RMSignage',
         );
     }
 
@@ -42,7 +42,7 @@ class WorkspaceInvitationMail extends Mailable
         $expires = $this->invitation->expires_at->toDayDateTimeString();
 
         return <<<HTML
-            <p>You have been invited to join <strong>{$workspace}</strong> on DZ Signage as <strong>{$role}</strong>.</p>
+            <p>You have been invited to join <strong>{$workspace}</strong> on RMSignage as <strong>{$role}</strong>.</p>
             <p><a href="{$url}">Accept invitation</a></p>
             <p>This invitation expires on {$expires}.</p>
             HTML;

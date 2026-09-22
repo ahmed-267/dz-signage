@@ -38,7 +38,7 @@ export function WorkspaceSwitcher() {
                             size="lg"
                             className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                             data-test="workspace-switcher"
-                            aria-label="Switch workspace"
+                            aria-label="Switch business"
                         >
                             <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center overflow-hidden rounded-lg">
                                 {current.logo_url ? (
@@ -75,7 +75,7 @@ export function WorkspaceSwitcher() {
                         sideOffset={4}
                     >
                         <DropdownMenuLabel className="text-muted-foreground text-xs">
-                            Workspaces
+                            Businesses
                         </DropdownMenuLabel>
                         {available.map((item) => (
                             <DropdownMenuItem
@@ -124,9 +124,7 @@ export function WorkspaceSwitcher() {
                                 <div className="bg-muted flex size-6 items-center justify-center rounded-md border">
                                     <Plus className="size-4" />
                                 </div>
-                                <span className="text-sm">
-                                    Create workspace
-                                </span>
+                                <span className="text-sm">Create business</span>
                             </Link>
                         </DropdownMenuItem>
                     </DropdownMenuContent>

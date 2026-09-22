@@ -1,15 +1,10 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { MoreHorizontal, Shield, UserPlus } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import InputError from '@/components/input-error';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -19,6 +14,14 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
@@ -55,6 +58,9 @@ type TeamRow = {
 
 type Props = {
     members: TeamRow[];
+    member_count: number;
+    member_limit: number | null;
+    plan_name: string | null;
     assignableRoles: RoleOption[];
     roleDescriptions: RoleOption[];
 };
@@ -65,8 +71,62 @@ const selectClassName = cn(
     'disabled:cursor-not-allowed disabled:opacity-50',
 );
 
+function roleBadgeProps(role: string): {
+    variant?: 'info' | 'success' | 'warning' | 'neutral' | 'secondary';
+    className?: string;
+} {
+    switch (role) {
+        case 'owner':
+            return {
+                className:
+                    'border-transparent bg-violet-500/15 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300',
+            };
+        case 'admin':
+            return { variant: 'info' };
+        case 'designer':
+            return { variant: 'success' };
+        case 'content_manager':
+            return { variant: 'warning' };
+        case 'location_manager':
+        case 'viewer':
+            return { variant: 'neutral' };
+        default:
+            return { variant: 'secondary' };
+    }
+}
+
+function memberInitial(row: TeamRow): string {
+    const source = (row.name ?? row.email).trim();
+    return source.charAt(0).toUpperCase() || '?';
+}
+
+function teamSubtitle(
+    count: number,
+    planName: string | null,
+    memberLimit: number | null,
+): string {
+    const countLabel = `${count} ${count === 1 ? 'member' : 'members'}`;
+
+    if (planName && memberLimit != null) {
+        return `${countLabel} · ${planName} includes ${memberLimit}`;
+    }
+
+    if (memberLimit != null) {
+        return `${countLabel} · plan includes ${memberLimit}`;
+    }
+
+    if (planName) {
+        return `${countLabel} · ${planName}`;
+    }
+
+    return countLabel;
+}
+
 export default function TeamPage({
     members: rows,
+    member_count: memberCount,
+    member_limit: memberLimit,
+    plan_name: planName,
     assignableRoles,
     roleDescriptions,
 }: Props) {
@@ -99,7 +159,7 @@ export default function TeamPage({
     }
 
     function removeMember(memberId: number) {
-        if (!confirm('Remove this member from the workspace?')) {
+        if (!confirm('Remove this member from the business?')) {
             return;
         }
 
@@ -129,7 +189,7 @@ export default function TeamPage({
     }
 
     function leaveWorkspace() {
-        if (!confirm('Leave this workspace?')) {
+        if (!confirm('Leave this business?')) {
             return;
         }
 
@@ -143,24 +203,34 @@ export default function TeamPage({
             }
 
             return (
-                <div className="flex flex-wrap gap-2">
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => resendInvitation(row.id)}
-                    >
-                        Resend
-                    </Button>
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => revokeInvitation(row.id)}
-                    >
-                        Revoke
-                    </Button>
-                </div>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="size-8"
+                            aria-label={`Actions for invitation ${row.email}`}
+                            data-test="team-row-actions"
+                        >
+                            <MoreHorizontal className="size-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                            onSelect={() => resendInvitation(row.id)}
+                        >
+                            Resend invite
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            variant="destructive"
+                            onSelect={() => revokeInvitation(row.id)}
+                        >
+                            Revoke invite
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             );
         }
 
@@ -172,55 +242,129 @@ export default function TeamPage({
             permissions?.can_remove_members &&
             !row.is_self &&
             row.role !== 'owner';
+        const canLeaveSelf = row.is_self && permissions?.can_leave;
 
-        if (!canChangeRole && !canRemove) {
+        if (!canChangeRole && !canRemove && !canLeaveSelf) {
             return null;
         }
 
         return (
-            <div className="flex flex-wrap items-center gap-2">
-                {canChangeRole ? (
-                    <select
-                        className={cn(selectClassName, 'w-auto min-w-36')}
-                        value={row.role}
-                        onChange={(event) =>
-                            updateRole(row.id, event.target.value)
-                        }
-                        aria-label={`Change role for ${row.email}`}
-                    >
-                        {assignableRoles.map((role) => (
-                            <option key={role.value} value={role.value}>
-                                {role.label}
-                            </option>
-                        ))}
-                    </select>
-                ) : null}
-                {canRemove ? (
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                     <Button
                         type="button"
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => removeMember(row.id)}
+                        variant="ghost"
+                        size="icon"
+                        className="size-8"
+                        aria-label={`Actions for ${row.email}`}
+                        data-test="team-row-actions"
                     >
-                        Remove
+                        <MoreHorizontal className="size-4" />
                     </Button>
-                ) : null}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                    {canChangeRole ? (
+                        <>
+                            <DropdownMenuLabel>Change role</DropdownMenuLabel>
+                            {assignableRoles.map((role) => (
+                                <DropdownMenuItem
+                                    key={role.value}
+                                    disabled={role.value === row.role}
+                                    onSelect={() =>
+                                        updateRole(row.id, role.value)
+                                    }
+                                >
+                                    {role.label}
+                                </DropdownMenuItem>
+                            ))}
+                            {(canRemove || canLeaveSelf) && (
+                                <DropdownMenuSeparator />
+                            )}
+                        </>
+                    ) : null}
+                    {canRemove ? (
+                        <DropdownMenuItem
+                            variant="destructive"
+                            onSelect={() => removeMember(row.id)}
+                        >
+                            Remove member
+                        </DropdownMenuItem>
+                    ) : null}
+                    {canLeaveSelf ? (
+                        <DropdownMenuItem
+                            variant="destructive"
+                            onSelect={leaveWorkspace}
+                        >
+                            Leave business
+                        </DropdownMenuItem>
+                    ) : null}
+                </DropdownMenuContent>
+            </DropdownMenu>
+        );
+    }
+
+    function MemberCell({ row }: { row: TeamRow }) {
+        return (
+            <div className="flex items-center gap-3">
+                <Avatar className="size-9">
+                    <AvatarFallback className="bg-gradient-to-br from-cyan-400 to-violet-500 text-sm font-semibold text-white">
+                        {memberInitial(row)}
+                    </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">
+                        {row.name ?? row.email}
+                        {row.is_self ? (
+                            <span className="text-muted-foreground font-normal">
+                                {' '}
+                                (you)
+                            </span>
+                        ) : null}
+                    </p>
+                    {row.name ? (
+                        <p className="text-muted-foreground truncate text-xs">
+                            {row.email}
+                        </p>
+                    ) : null}
+                </div>
             </div>
+        );
+    }
+
+    function RoleBadge({ row }: { row: TeamRow }) {
+        const props = roleBadgeProps(row.role);
+
+        return (
+            <Badge variant={props.variant} className={props.className}>
+                {row.role_label}
+            </Badge>
+        );
+    }
+
+    function StatusBadge({ row }: { row: TeamRow }) {
+        const invited = row.status === 'pending';
+
+        return (
+            <Badge variant={invited ? 'warning' : 'success'}>
+                {invited ? 'Invited' : 'Active'}
+            </Badge>
         );
     }
 
     return (
         <>
             <Head title="Team" />
-            <div className="flex h-full flex-1 flex-col gap-6 p-4 md:p-6">
+            <div className="mx-auto flex h-full w-full max-w-4xl flex-1 flex-col gap-5 p-4 md:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                         <h1 className="font-display text-2xl font-semibold tracking-tight">
                             Team
                         </h1>
-                        <p className="text-muted-foreground mt-1 text-sm">
-                            Manage members and pending invitations for this
-                            workspace.
+                        <p
+                            className="text-muted-foreground mt-0.5 text-sm"
+                            data-test="team-subtitle"
+                        >
+                            {teamSubtitle(memberCount, planName, memberLimit)}
                         </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -230,7 +374,7 @@ export default function TeamPage({
                                 variant="outline"
                                 onClick={leaveWorkspace}
                             >
-                                Leave workspace
+                                Leave business
                             </Button>
                         ) : null}
                         {permissions?.can_invite ? (
@@ -240,15 +384,18 @@ export default function TeamPage({
                             >
                                 <DialogTrigger asChild>
                                     <Button data-test="team-invite-button">
-                                        Invite member
+                                        <UserPlus className="size-4" />
+                                        Invite Member
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent>
                                     <DialogHeader>
-                                        <DialogTitle>Invite member</DialogTitle>
+                                        <DialogTitle>
+                                            Invite Team Member
+                                        </DialogTitle>
                                         <DialogDescription>
                                             Send an email invitation with a
-                                            workspace role.
+                                            business role.
                                         </DialogDescription>
                                     </DialogHeader>
                                     <form
@@ -257,7 +404,7 @@ export default function TeamPage({
                                     >
                                         <div className="grid gap-2">
                                             <Label htmlFor="invite-email">
-                                                Email
+                                                Email address
                                             </Label>
                                             <Input
                                                 id="invite-email"
@@ -270,7 +417,7 @@ export default function TeamPage({
                                                     )
                                                 }
                                                 required
-                                                placeholder="colleague@example.com"
+                                                placeholder="colleague@company.com"
                                                 data-test="team-invite-email"
                                             />
                                             <InputError
@@ -299,7 +446,8 @@ export default function TeamPage({
                                                         key={role.value}
                                                         value={role.value}
                                                     >
-                                                        {role.label}
+                                                        {role.label} —{' '}
+                                                        {role.description}
                                                     </option>
                                                 ))}
                                             </select>
@@ -309,6 +457,15 @@ export default function TeamPage({
                                         </div>
                                         <DialogFooter>
                                             <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() =>
+                                                    setInviteOpen(false)
+                                                }
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <Button
                                                 type="submit"
                                                 disabled={inviteForm.processing}
                                                 data-test="team-invite-submit"
@@ -316,7 +473,7 @@ export default function TeamPage({
                                                 {inviteForm.processing ? (
                                                     <Spinner />
                                                 ) : null}
-                                                Send invitation
+                                                Send Invite
                                             </Button>
                                         </DialogFooter>
                                     </form>
@@ -326,125 +483,94 @@ export default function TeamPage({
                     </div>
                 </div>
 
-                <Card className="shadow-none">
-                    <CardHeader>
-                        <CardTitle className="font-display text-lg">
-                            Members & invitations
-                        </CardTitle>
-                        <CardDescription>
-                            Active members and pending invites for the current
-                            workspace.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="hidden md:block">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Person</TableHead>
-                                        <TableHead>Role</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="text-right">
-                                            Actions
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {rows.map((row) => (
-                                        <TableRow key={`${row.type}-${row.id}`}>
-                                            <TableCell>
-                                                <div className="font-medium">
-                                                    {row.name ?? row.email}
-                                                </div>
-                                                {row.name ? (
-                                                    <div className="text-muted-foreground text-xs">
-                                                        {row.email}
-                                                    </div>
-                                                ) : null}
-                                            </TableCell>
-                                            <TableCell>
-                                                {row.role_label}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge
-                                                    variant={
-                                                        row.status === 'active'
-                                                            ? 'success'
-                                                            : 'warning'
-                                                    }
-                                                >
-                                                    {row.status === 'active'
-                                                        ? 'Active'
-                                                        : 'Pending'}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end">
-                                                    {renderActions(row)}
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-
-                        <div className="space-y-3 md:hidden">
-                            {rows.map((row) => (
-                                <div
-                                    key={`${row.type}-${row.id}-mobile`}
-                                    className="space-y-3 rounded-lg border p-4"
-                                >
-                                    <div>
-                                        <div className="font-medium">
-                                            {row.name ?? row.email}
-                                        </div>
-                                        {row.name ? (
-                                            <div className="text-muted-foreground text-sm">
-                                                {row.email}
+                <div className="border-border bg-card overflow-hidden rounded-xl border">
+                    <div className="hidden md:block">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="font-mono text-xs uppercase">
+                                        Member
+                                    </TableHead>
+                                    <TableHead className="font-mono text-xs uppercase">
+                                        Role
+                                    </TableHead>
+                                    <TableHead className="font-mono text-xs uppercase">
+                                        Status
+                                    </TableHead>
+                                    <TableHead className="w-12" />
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {rows.map((row) => (
+                                    <TableRow key={`${row.type}-${row.id}`}>
+                                        <TableCell>
+                                            <MemberCell row={row} />
+                                        </TableCell>
+                                        <TableCell>
+                                            <RoleBadge row={row} />
+                                        </TableCell>
+                                        <TableCell>
+                                            <StatusBadge row={row} />
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex justify-end">
+                                                {renderActions(row)}
                                             </div>
-                                        ) : null}
-                                    </div>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <Badge variant="secondary">
-                                            {row.role_label}
-                                        </Badge>
-                                        <Badge
-                                            variant={
-                                                row.status === 'active'
-                                                    ? 'success'
-                                                    : 'warning'
-                                            }
-                                        >
-                                            {row.status === 'active'
-                                                ? 'Active'
-                                                : 'Pending'}
-                                        </Badge>
-                                    </div>
-                                    {renderActions(row)}
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
 
-                <div>
-                    <h2 className="font-display mb-3 text-lg font-semibold tracking-tight">
-                        Role descriptions
+                    <div className="divide-border divide-y md:hidden">
+                        {rows.map((row) => (
+                            <div
+                                key={`${row.type}-${row.id}-mobile`}
+                                className="flex items-start justify-between gap-3 p-4"
+                            >
+                                <div className="min-w-0 space-y-2">
+                                    <MemberCell row={row} />
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <RoleBadge row={row} />
+                                        <StatusBadge row={row} />
+                                    </div>
+                                </div>
+                                {renderActions(row)}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="border-border bg-card rounded-xl border p-5">
+                    <h2 className="font-display mb-3 flex items-center gap-2 text-base font-semibold tracking-tight">
+                        <Shield className="text-muted-foreground size-4" />
+                        Roles & Permissions
                     </h2>
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        {roleDescriptions.map((role) => (
-                            <Card key={role.value} className="shadow-none">
-                                <CardHeader className="gap-1">
-                                    <CardTitle className="text-base">
+                        {roleDescriptions.map((role) => {
+                            const badge = roleBadgeProps(role.value);
+
+                            return (
+                                <div
+                                    key={role.value}
+                                    className="bg-secondary/60 rounded-lg p-3"
+                                >
+                                    <Badge
+                                        variant={badge.variant}
+                                        className={cn(
+                                            'mb-1.5',
+                                            badge.className,
+                                        )}
+                                    >
                                         {role.label}
-                                    </CardTitle>
-                                    <CardDescription>
+                                    </Badge>
+                                    <p className="text-muted-foreground text-xs leading-relaxed">
                                         {role.description}
-                                    </CardDescription>
-                                </CardHeader>
-                            </Card>
-                        ))}
+                                    </p>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </div>

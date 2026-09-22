@@ -1,4 +1,5 @@
 import type { Auth } from '@/types/auth';
+import type { BrandKitShared } from '@/types/brand-kit';
 import type { WorkspaceContext } from '@/types/workspace';
 
 declare module 'react' {
@@ -18,6 +19,15 @@ declare module '@inertiajs/core' {
                 error?: string | null;
             };
             sidebarOpen: boolean;
+            ai?: {
+                available: boolean;
+                feature_enabled: boolean;
+                configured: boolean;
+                provider: string;
+                video_enabled: boolean;
+                message: string | null;
+            } | null;
+            brandKit?: BrandKitShared;
             [key: string]: unknown;
         };
     }

@@ -24,7 +24,7 @@ export async function completeOnboarding(
 
     await page.getByTestId('onboarding-name').fill(workspaceName);
     await page.getByTestId('onboarding-industry').selectOption({ index: 1 });
-    await page.getByTestId('onboarding-country').fill('United Kingdom');
+    await page.getByTestId('onboarding-country').selectOption('United Kingdom');
     await page.getByTestId('onboarding-timezone').selectOption('Europe/London');
     await page.getByTestId('onboarding-continue').click();
     await page.getByTestId('onboarding-skip-logo').click();

@@ -13,6 +13,7 @@ use App\Http\Requests\Workspaces\UpdateWorkspaceMemberRoleRequest;
 use App\Mail\WorkspaceInvitationMail;
 use App\Models\WorkspaceInvitation;
 use App\Models\WorkspaceMember;
+use App\Support\Billing\BillingEntitlement;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -63,14 +64,20 @@ class TeamController extends Controller
                 'is_self' => false,
             ]);
 
+        $billing = BillingEntitlement::summary($workspace);
+        $rows = $members->concat($invitations)->values();
+
         return Inertia::render('app/team', [
-            'members' => $members->concat($invitations)->values(),
+            'members' => $rows,
+            'member_count' => $rows->count(),
+            'member_limit' => $billing['team_limit'],
+            'plan_name' => $billing['plan_name'],
             'assignableRoles' => collect(WorkspaceRole::assignable())->map(fn ($role) => [
                 'value' => $role->value,
                 'label' => $role->label(),
                 'description' => $role->description(),
             ])->values(),
-            'roleDescriptions' => collect(WorkspaceRole::cases())->map(fn ($role) => [
+            'roleDescriptions' => collect([WorkspaceRole::Owner, ...WorkspaceRole::assignable()])->map(fn ($role) => [
                 'value' => $role->value,
                 'label' => $role->label(),
                 'description' => $role->description(),

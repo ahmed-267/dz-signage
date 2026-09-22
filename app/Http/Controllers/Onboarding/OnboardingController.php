@@ -6,6 +6,7 @@ use App\Actions\Workspaces\CreateWorkspace;
 use App\Enums\WorkspaceIndustry;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Workspaces\StoreWorkspaceRequest;
+use App\Support\CountryCatalog;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,6 +21,7 @@ class OnboardingController extends Controller
                 'label' => $i->label(),
             ])->values(),
             'timezones' => timezone_identifiers_list(),
+            'countries' => CountryCatalog::options(),
         ]);
     }
 
@@ -29,6 +31,6 @@ class OnboardingController extends Controller
 
         return redirect()
             ->route('app.dashboard')
-            ->with('success', 'Workspace created. Welcome to DZ Signage.');
+            ->with('success', 'Workspace created. Welcome to RMSignage.');
     }
 }
