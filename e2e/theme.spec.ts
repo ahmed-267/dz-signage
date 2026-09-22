@@ -13,7 +13,7 @@ test.describe('theme preference', () => {
             page.getByRole('radiogroup', { name: 'Theme' }),
         ).toBeVisible();
 
-        await themeToggle.getByRole('radio', { name: 'Dark' }).click();
+        await themeToggle.getByRole('radio', { name: 'Dark theme' }).click();
         await expect(page.locator('html')).toHaveClass(/dark/);
         await expect(
             page.evaluate(() => localStorage.getItem('appearance')),
@@ -25,7 +25,7 @@ test.describe('theme preference', () => {
 
         await page
             .getByTestId('theme-toggle')
-            .getByRole('radio', { name: 'Light' })
+            .getByRole('radio', { name: 'Light theme' })
             .click();
         await expect(page.locator('html')).not.toHaveClass(/dark/);
         await expect(
@@ -34,5 +34,29 @@ test.describe('theme preference', () => {
 
         await page.reload();
         await expect(page.locator('html')).not.toHaveClass(/dark/);
+    });
+
+    test('landing theme toggle persists into the authenticated app', async ({
+        page,
+    }) => {
+        await page.goto('/');
+
+        const landingToggle = page.getByTestId('theme-toggle').first();
+        await expect(landingToggle).toBeVisible();
+
+        await landingToggle.getByRole('radio', { name: 'Light theme' }).click();
+        await expect(page.locator('html')).not.toHaveClass(/dark/);
+        await expect(
+            page.evaluate(() => localStorage.getItem('appearance')),
+        ).resolves.toBe('light');
+
+        await registerCustomer(page);
+
+        await expect(page.locator('html')).not.toHaveClass(/dark/);
+        await expect(
+            page.getByTestId('theme-toggle').getByRole('radio', {
+                name: 'Light theme',
+            }),
+        ).toHaveAttribute('aria-checked', 'true');
     });
 });

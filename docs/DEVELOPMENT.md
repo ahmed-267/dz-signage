@@ -69,6 +69,17 @@ php artisan dz:seed-demo            # same seeder + history; --fresh-demo rebuil
 php artisan dz:cleanup-e2e          # strip E2E-prefixed fixtures (also runs after Playwright)
 ```
 
+### Production demo account (deployed environments)
+
+Use the dedicated command — **never** `db:seed` / `dz:seed-demo` against production:
+
+```bash
+# Requires RMSIGNAGE_DEMO_EMAIL + RMSIGNAGE_DEMO_PASSWORD in the environment
+php artisan rmsignage:seed-demo-account --allow-production
+```
+
+Creates/refreshes only `demo@rmsignage.com` → **North & Bean Café** (`rmsignage-demo-north-bean`). Idempotent; no Stripe activity; no usable device tokens. See `docs/PRODUCTION.md`.
+
 ### Phase 1–5 surfaces
 
 | Path                                                | Purpose                                                                     |

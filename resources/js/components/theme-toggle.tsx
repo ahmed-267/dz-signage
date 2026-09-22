@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import type { Appearance } from '@/hooks/use-appearance';
@@ -5,13 +6,13 @@ import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 
 const OPTIONS: { value: Appearance; icon: LucideIcon; label: string }[] = [
-    { value: 'light', icon: Sun, label: 'Light' },
-    { value: 'dark', icon: Moon, label: 'Dark' },
-    { value: 'system', icon: Monitor, label: 'System' },
+    { value: 'light', icon: Sun, label: 'Light theme' },
+    { value: 'dark', icon: Moon, label: 'Dark theme' },
+    { value: 'system', icon: Monitor, label: 'Use system theme' },
 ];
 
-/** Compact Light / Dark / System control for app and admin headers. */
-export function ThemeToggle({ className }: { className?: string }) {
+/** Compact Light / Dark / System control for app, admin, and marketing headers. */
+export function ThemeToggle({ className, ...props }: ComponentProps<'div'>) {
     const { appearance, updateAppearance } = useAppearance();
 
     return (
@@ -23,6 +24,7 @@ export function ThemeToggle({ className }: { className?: string }) {
                 'bg-muted inline-flex shrink-0 gap-0.5 rounded-lg p-0.5',
                 className,
             )}
+            {...props}
         >
             {OPTIONS.map(({ value, icon: Icon, label }) => {
                 const selected = appearance === value;

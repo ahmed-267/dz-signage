@@ -211,7 +211,7 @@ Not a new numbered phase. Docs and product surfaces corrected so shipped work is
 
 - **Brand Kit** — `/app/brand-kit`, one `brand_kits` row per Workspace; Owner/Admin/Designer manage; all members view; LayoutSchema `brandBinding` + Use Template auto-personalise via `BrandKitSchemaApplier`
 - **Locations** — `/app/locations`, Screen → Location assignment, Location Manager scope via `location_user`
-- **Demo seed** — idempotent `DemoWorkspaceSeeder` / `php artisan dz:seed-demo` (North & Bean + ~80 days history; refuses production)
+- **Demo seed** — idempotent `DemoWorkspaceSeeder` / `php artisan dz:seed-demo` (North & Bean + ~80 days history; refuses production). Production demo: `php artisan rmsignage:seed-demo-account --allow-production` (env credentials; scoped to designated demo Business only).
 - **Schedule / Location table UX** — server-side `ListPagination` (`per_page` 10/20/50, sort, filters, query string); shared `SortableTableHeader` (Leads-style)
 - **Theme toggle** — top-right in `AppSidebarHeader`
 - **Billing plan catalog (final)** — DB `billing_plans` + `BillingPlanCatalog` (config seed/fallback): Starter £19/mo · £15/mo annual (£180/yr) · 5 TVs · 200 GB · 5 seats; Business £49/mo · £39/mo annual (£468/yr) · 20 TVs · 500 GB · 15 seats · Advanced Analytics; Enterprise custom. **No Pro.** Super Admin manages plans at `/admin/subscriptions/plans`. Stripe amount changes create new Prices; existing subscriptions stay until explicit migrate. Checkout still requires Price IDs.

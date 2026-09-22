@@ -214,9 +214,7 @@ test.describe('schedules phase 8', () => {
 
         const banner = page.getByTestId('schedule-conflict-banner');
         await expect(banner).toBeVisible({ timeout: 15_000 });
-        await expect(banner).toContainText(
-            /overlaps another active schedule/i,
-        );
+        await expect(banner).toContainText(/overlaps another active schedule/i);
         await expect(banner).toContainText(/Priority conflict|same priority/i);
         await expect(banner).toContainText(primaryName);
 

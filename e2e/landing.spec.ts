@@ -28,6 +28,10 @@ test.describe('marketing landing page', () => {
         );
 
         await expect(page.getByTestId('marketing-nav')).toBeVisible();
+        await expect(page.getByTestId('theme-toggle').first()).toBeVisible();
+        await expect(
+            page.getByRole('radiogroup', { name: 'Theme' }).first(),
+        ).toBeVisible();
         await expect(page.getByTestId('marketing-hero')).toBeVisible();
         await expect(page.getByTestId('marketing-pricing')).toBeAttached();
         await expect(page.getByTestId('marketing-faq')).toBeAttached();
@@ -144,6 +148,7 @@ test.describe('marketing landing page on a phone viewport', () => {
         await page.getByTestId('marketing-nav-toggle').click();
         const drawer = page.getByTestId('marketing-mobile-nav');
         await expect(drawer).toBeVisible();
+        await expect(drawer.getByTestId('theme-toggle')).toBeVisible();
 
         await page.getByTestId('marketing-mobile-nav-link-pricing').click();
         await expect(drawer).toBeHidden();

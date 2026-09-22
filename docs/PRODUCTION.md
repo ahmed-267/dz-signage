@@ -49,13 +49,45 @@ Do not expose System Health publicly.
 
 ## Scheduler jobs
 
-| Command                     | Cadence      |
-| --------------------------- | ------------ |
-| `screens:prune-heartbeats`  | Daily        |
-| `ai:prune-generations`      | Daily        |
-| `analytics:aggregate-daily` | Daily        |
-| `analytics:prune`           | Daily        |
-| Scheduler heartbeat cache   | Every minute |
+| Command                            | Cadence         | Notes              |
+| ---------------------------------- | --------------- | ------------------ |
+| `screens:prune-heartbeats`         | Daily           |                    |
+| `ai:prune-generations`             | Daily           |                    |
+| `analytics:aggregate-daily`        | Daily           |                    |
+| `analytics:prune`                  | Daily           |                    |
+| `rmsignage:refresh-demo-telemetry` | Every 2 minutes | Demo Business only |
+| Scheduler heartbeat cache          | Every minute    |                    |
+
+## Demo Account
+
+Dedicated production demo Business (**North & Bean Café**) for demos and QA.
+
+**Do not** run `php artisan db:seed` or `dz:seed-demo` against production.
+
+### Environment
+
+```bash
+RMSIGNAGE_DEMO_EMAIL=demo@rmsignage.com
+RMSIGNAGE_DEMO_PASSWORD=...   # set in secrets; never commit
+```
+
+### Seed (idempotent, scoped)
+
+```bash
+php artisan rmsignage:seed-demo-account --allow-production
+```
+
+Without `--allow-production`, the command refuses when `APP_ENV=production`.
+
+Safety guarantees:
+
+- Touches **only** the designated demo email + workspace slug (`rmsignage-demo-north-bean`)
+- Safe to re-run (no duplicate Media / Screens / TVs / Playlists / Schedules / analytics)
+- No Stripe customers, subscriptions, invoices, or charges
+- No usable Player device tokens (hashes only; `credentials_issued=false`)
+- TV presence refresher (`rmsignage:refresh-demo-telemetry`) is similarly scoped
+
+Normal sign-up still creates a clean empty Business — the mature demo is not onboarding default.
 
 ## Analytics retention
 

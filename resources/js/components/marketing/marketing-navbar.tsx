@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { MenuIcon } from 'lucide-react';
 import AppLogoIcon from '@/components/app-logo-icon';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
+
 import {
     Sheet,
     SheetContent,
@@ -142,6 +144,8 @@ export default function MarketingNavbar({
                 </nav>
 
                 <div className="flex items-center gap-2">
+                    <ThemeToggle className="hidden sm:inline-flex" />
+
                     {auth.user ? (
                         <Button
                             data-test="marketing-open-dashboard"
@@ -220,7 +224,14 @@ export default function MarketingNavbar({
                                 ))}
                             </nav>
 
-                            <div className="border-border/70 mt-auto flex flex-col gap-2 border-t p-4">
+                            <div className="border-border/70 mt-auto flex flex-col gap-3 border-t p-4">
+                                <div className="flex items-center justify-between gap-3">
+                                    <span className="text-muted-foreground text-sm font-medium">
+                                        Theme
+                                    </span>
+                                    <ThemeToggle />
+                                </div>
+
                                 {auth.user ? (
                                     <Button
                                         data-test="marketing-mobile-open-dashboard"

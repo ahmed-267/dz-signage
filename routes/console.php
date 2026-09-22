@@ -4,6 +4,7 @@ use App\Console\Commands\AggregateScreenDailyStats;
 use App\Console\Commands\PruneAiGenerations;
 use App\Console\Commands\PruneAnalyticsData;
 use App\Console\Commands\PruneScreenHeartbeats;
+use App\Console\Commands\RefreshRmsignageDemoTelemetryCommand;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -16,6 +17,12 @@ Schedule::command(PruneScreenHeartbeats::class)->daily()->at('03:20');
 Schedule::command(PruneAiGenerations::class)->daily()->at('03:40');
 Schedule::command(AggregateScreenDailyStats::class)->daily()->at('03:50');
 Schedule::command(PruneAnalyticsData::class)->daily()->at('04:10');
+
+// Demo-only TV presence refresher — scoped to rmsignage-demo-north-bean.
+Schedule::command(RefreshRmsignageDemoTelemetryCommand::class)
+    ->everyTwoMinutes()
+    ->name('rmsignage-demo-telemetry')
+    ->withoutOverlapping();
 
 // Lightweight scheduler heartbeat for Admin System Health.
 Schedule::call(function () {
