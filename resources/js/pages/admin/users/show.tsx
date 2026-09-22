@@ -112,7 +112,7 @@ export default function AdminUserShow({
         { value: '', label: 'User (no platform role)' },
         ...(role_options ??
             platform_roles ?? [
-                { value: 'platform_admin', label: 'Admin' },
+                { value: 'platform_admin', label: 'Platform Admin' },
                 { value: 'super_admin', label: 'Super Admin' },
             ]),
     ];

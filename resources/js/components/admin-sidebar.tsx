@@ -172,12 +172,39 @@ const navGroups: NavGroup[] = [
 
 export function AdminSidebar() {
     const { auth } = usePage().props;
-    const roleLabel =
+    const platformRole =
         typeof auth.user?.platform_role === 'string'
-            ? auth.user.platform_role === 'platform_admin'
-                ? 'Admin'
-                : 'Super Admin'
-            : 'Platform';
+            ? auth.user.platform_role
+            : null;
+    const isSuperAdmin = platformRole === 'super_admin';
+    const roleLabel =
+        platformRole === 'platform_admin'
+            ? 'Platform Admin'
+            : platformRole === 'super_admin'
+              ? 'Super Admin'
+              : 'Platform';
+
+    const groups = navGroups
+        .map((group) => {
+            if (group.title !== 'Platform') {
+                return group;
+            }
+
+            // Feature Flags + Settings are Super Admin–only (backend still enforces).
+            if (isSuperAdmin) {
+                return group;
+            }
+
+            return {
+                ...group,
+                items: group.items.filter(
+                    (item) =>
+                        item.title !== 'Feature Flags' &&
+                        item.title !== 'Settings',
+                ),
+            };
+        })
+        .filter((group) => (group.items?.length ?? 0) > 0);
 
     return (
         <Sidebar collapsible="icon" variant="inset" data-test="admin-sidebar">
@@ -205,7 +232,7 @@ export function AdminSidebar() {
             </SidebarHeader>
 
             <SidebarContent className="gap-2 overflow-y-auto">
-                <NavMain groups={navGroups} />
+                <NavMain groups={groups} />
             </SidebarContent>
 
             <SidebarFooter className="gap-2">

@@ -105,6 +105,8 @@ test.describe('admin portal naming', () => {
         await expect(page.getByTestId('admin-topbar')).not.toContainText(
             'Super Admin Portal',
         );
-        await expect(page.getByTestId('admin-sidebar')).toContainText('Admin');
+        await expect(page.getByTestId('admin-sidebar')).toContainText(
+            'Platform Admin',
+        );
     });
 });

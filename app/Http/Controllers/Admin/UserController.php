@@ -173,13 +173,13 @@ class UserController extends Controller
 
             if ($superAdminCount <= 1) {
                 throw ValidationException::withMessages([
-                    'platform_role' => 'Cannot remove the last Super Admin.',
+                    'platform_role' => 'RMSignage must have at least one Super Admin. Create another Super Admin before removing this role.',
                 ]);
             }
 
             if ($actor->id === $user->id) {
                 throw ValidationException::withMessages([
-                    'platform_role' => 'You cannot demote yourself while you are the last Super Admin.',
+                    'platform_role' => 'RMSignage must have at least one Super Admin. Create another Super Admin before removing this role.',
                 ]);
             }
         }
@@ -209,14 +209,29 @@ class UserController extends Controller
      */
     private function userPayload(User $user): array
     {
-        $companies = $user->relationLoaded('workspaceMemberships')
+        $memberships = $user->relationLoaded('workspaceMemberships')
             ? $user->workspaceMemberships
-                ->map(fn ($membership) => $membership->workspace?->name)
-                ->filter()
-                ->unique()
-                ->values()
-                ->all()
-            : [];
+            : collect();
+
+        $companies = $memberships
+            ->map(fn ($membership) => $membership->workspace?->name)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $membershipSummaries = $memberships
+            ->map(function ($membership) {
+                $workspaceName = $membership->workspace?->name;
+                if ($workspaceName === null) {
+                    return null;
+                }
+
+                return $membership->role->label().' — '.$workspaceName;
+            })
+            ->filter()
+            ->values()
+            ->all();
 
         return [
             'id' => $user->id,
@@ -225,6 +240,7 @@ class UserController extends Controller
             'workspace_count' => $user->workspace_memberships_count,
             'companies' => $companies,
             'company' => $companies === [] ? null : implode(', ', $companies),
+            'membership_summaries' => $membershipSummaries,
             'is_admin' => $user->isSuperAdmin(),
             'platform_role' => $user->platformRole()?->value,
             'platform_role_label' => $user->platformRole()?->label(),

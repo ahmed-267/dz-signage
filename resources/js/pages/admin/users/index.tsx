@@ -34,6 +34,7 @@ type UserRow = {
     workspace_count?: number;
     company?: string | null;
     companies?: string[];
+    membership_summaries?: string[];
     is_admin?: boolean;
     platform_role?: string | null;
     platform_role_label?: string | null;
@@ -316,17 +317,35 @@ export default function AdminUsersIndex({
                                                 {user.workspace_count ?? 0}
                                             </TableCell>
                                             <TableCell>
-                                                {user.platform_role_label ? (
-                                                    <Badge variant="info">
-                                                        {
-                                                            user.platform_role_label
-                                                        }
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge variant="secondary">
-                                                        User
-                                                    </Badge>
-                                                )}
+                                                <div className="flex flex-col gap-1">
+                                                    {user.platform_role_label ? (
+                                                        <Badge variant="info">
+                                                            {
+                                                                user.platform_role_label
+                                                            }
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="secondary">
+                                                            No platform role
+                                                        </Badge>
+                                                    )}
+                                                    {(
+                                                        user.membership_summaries ??
+                                                        []
+                                                    ).length > 0 ? (
+                                                        <span className="text-muted-foreground text-xs">
+                                                            {user.membership_summaries?.join(
+                                                                '; ',
+                                                            )}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-muted-foreground text-xs">
+                                                            {user.workspace_count ??
+                                                                0}{' '}
+                                                            Business memberships
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </TableCell>
                                             <TableCell>
                                                 {user.created_at
@@ -366,12 +385,14 @@ export default function AdminUsersIndex({
                                             </Badge>
                                         ) : (
                                             <Badge variant="secondary">
-                                                User
+                                                No platform role
                                             </Badge>
                                         )}
                                         <span className="text-muted-foreground text-xs">
-                                            {user.workspace_count ?? 0}{' '}
-                                            workspaces
+                                            {(
+                                                user.membership_summaries ?? []
+                                            ).join('; ') ||
+                                                `${user.workspace_count ?? 0} Business memberships`}
                                         </span>
                                     </div>
                                 </div>

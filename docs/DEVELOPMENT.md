@@ -80,6 +80,17 @@ php artisan rmsignage:seed-demo-account --allow-production
 
 Creates/refreshes only `demo@rmsignage.com` → **North & Bean Café** (`rmsignage-demo-north-bean`). Idempotent; no Stripe activity; no usable device tokens. See `docs/PRODUCTION.md`.
 
+### Production platform staff accounts
+
+Do **not** seed `admin@dz.local` / `platform@dz.local` into production. Create staff with:
+
+```bash
+php artisan rmsignage:create-super-admin --name="Ahmed" --email="you@example.com"
+php artisan rmsignage:create-platform-admin --name="Sarah" --email="sarah@example.com"
+```
+
+Password is entered hidden (never via flags). Accounts are verified immediately and are **not** attached to any Business. Login defaults to `/admin`. See `docs/ROLES_AND_PERMISSIONS.md`.
+
 ### Phase 1–5 surfaces
 
 | Path                                                | Purpose                                                                     |

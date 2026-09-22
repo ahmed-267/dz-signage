@@ -24,6 +24,12 @@ class LocalDevSeeder extends Seeder
 {
     public function run(): void
     {
+        if (app()->environment('production')) {
+            $this->command->error('LocalDevSeeder refuses to run in production.');
+
+            return;
+        }
+
         $owner = $this->user(
             email: 'owner@dz.local',
             name: 'Local Owner',
@@ -82,7 +88,7 @@ class LocalDevSeeder extends Seeder
                 ['owner@dz.local', 'Workspace Owner', 'Full app + Media'],
                 ['viewer@dz.local', 'Viewer', 'Read-only Media'],
                 ['admin@dz.local', 'Super Admin + Workspace Admin', '/admin + workspace'],
-                ['platform@dz.local', 'Admin (platform)', '/admin ops (no role/settings/flags write)'],
+                ['platform@dz.local', 'Platform Admin', '/admin ops (no role/settings/flags write)'],
             ],
         );
     }

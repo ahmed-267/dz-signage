@@ -14,16 +14,40 @@ Platform staff (`super_admin` and `platform_admin`) land on `/admin/dashboard` a
 
 Enum: `App\Enums\PlatformRole` on `users.platform_role`
 
-| Role        | Value            | User-facing label | Access                                                                     |
-| ----------- | ---------------- | ----------------- | -------------------------------------------------------------------------- |
-| Super Admin | `super_admin`    | Super Admin       | Full `/admin/*`; manage platform Templates; legacy `users.is_admin` = true |
-| Admin       | `platform_admin` | **Admin**         | `/admin/*` including platform Templates; `is_admin` remains false          |
+| Role           | Value            | User-facing label  | Access                                                                     |
+| -------------- | ---------------- | ------------------ | -------------------------------------------------------------------------- |
+| Super Admin    | `super_admin`    | Super Admin        | Full `/admin/*`; manage platform Templates; legacy `users.is_admin` = true |
+| Platform Admin | `platform_admin` | **Platform Admin** | `/admin/*` operational access; Templates; `is_admin` remains false         |
 
 - Assigned via `User::assignPlatformRole()`, which syncs `is_admin` **only** for Super Admin.
 - Middleware `EnsureUserIsAdmin` allows any platform staff (`isPlatformStaff()`).
-- Platform roles are **not** Workspace roles. **Workspace Admin ≠ Admin (platform).**
-- Workspace roles **never** grant platform Template management or `/admin/*`.
-- **Admin** = RMSignage staff who work with/for the Super Admin. **Workspace Admin** = company team role.
+- Platform roles are **not** Business (Workspace) roles. **Business Admin ≠ Platform Admin.**
+- Business roles **never** grant platform Template management or `/admin/*`.
+- **Platform Admin** = RMSignage staff who work with/for the Super Admin. **Business Admin** = company team role.
+- Production staff accounts (no Business membership):
+
+```bash
+php artisan rmsignage:create-super-admin --name="Ahmed" --email="you@example.com"
+php artisan rmsignage:create-platform-admin --name="Sarah" --email="sarah@example.com"
+```
+
+Password is prompted hidden (never a CLI flag). Accounts are email-verified immediately. Re-running is idempotent; use `--reset-password` to rotate credentials. Do **not** use `LocalDevSeeder` / `admin@dz.local` in production.
+
+### Capability split (`PlatformPermissions`)
+
+| Capability                                                                   | Super Admin | Platform Admin |
+| ---------------------------------------------------------------------------- | ----------- | -------------- |
+| Access `/admin/*`                                                            | ✓           | ✓              |
+| Manage Templates                                                             | ✓           | ✓              |
+| View ops (TV Health, Publishing Jobs, System Health, Errors, Support, Audit) | ✓           | ✓              |
+| Manage Feature Flags                                                         | ✓           | —              |
+| Manage Platform Settings                                                     | ✓           | —              |
+| Manage Billing Plans / Stripe catalog                                        | ✓           | view only      |
+| Mutate customer subscriptions                                                | ✓           | —              |
+| Soft-delete Business                                                         | ✓           | —              |
+| Assign / remove platform roles                                               | ✓           | —              |
+
+Sidebar hides Feature Flags and Settings for Platform Admin; backend policies still enforce.
 
 ## Workspace roles (implemented)
 
@@ -202,26 +226,26 @@ Content Manager, Location Manager, and Viewer are view-only. Location Manager sc
 
 ## Platform Admin surface (`/admin`)
 
-Dedicated **AdminSidebar** (not customer `AppSidebar`): amber **RMSignage Admin** branding, role label (**Super Admin** / **Admin**), **Back to App**, Figma-aligned nav.
+Dedicated **AdminSidebar** (not customer `AppSidebar`): amber **RMSignage Admin** branding, role label (**Super Admin** / **Platform Admin**), **Back to App**, Figma-aligned nav.
 
-### Super Admin vs Admin (platform)
+### Super Admin vs Platform Admin
 
-| Capability                                            | Super Admin | Admin (platform) |
-| ----------------------------------------------------- | ----------- | ---------------- |
-| Overview, Workspaces, Users, Screens (inspect)        | Yes         | Yes              |
-| Templates CRUD + Builder                              | Yes         | Yes              |
-| Screen Health, Publishing Jobs, System Health, Errors | Yes         | Yes              |
-| Support Requests (read/update)                        | Yes         | Yes              |
-| Audit Log (read-only)                                 | Yes         | Yes              |
-| Feature Flags (mutate)                                | Yes         | Read only        |
-| Platform Settings (mutate)                            | Yes         | Read only        |
-| Assign / remove platform roles                        | Yes         | No               |
-| Subscriptions / Invoices (inspect)                    | Yes         | Yes              |
-| Change Workspace plan (Starter/Business via Cashier)  | Yes         | No               |
-| Edit plan catalog (`/admin/subscriptions/plans`)      | Yes         | Read-only        |
-| Sync Stripe Prices / migrate subscribers to new Price | Yes         | No               |
+| Capability                                            | Super Admin | Platform Admin  |
+| ----------------------------------------------------- | ----------- | --------------- |
+| Overview, Workspaces, Users, Screens (inspect)        | Yes         | Yes             |
+| Templates CRUD + Builder                              | Yes         | Yes             |
+| Screen Health, Publishing Jobs, System Health, Errors | Yes         | Yes             |
+| Support Requests (read/update)                        | Yes         | Yes             |
+| Audit Log (read-only)                                 | Yes         | Yes             |
+| Feature Flags (mutate)                                | Yes         | No (nav hidden) |
+| Platform Settings (mutate)                            | Yes         | No (nav hidden) |
+| Assign / remove platform roles                        | Yes         | No              |
+| Subscriptions / Invoices (inspect)                    | Yes         | Yes             |
+| Change Workspace plan (Starter/Business via Cashier)  | Yes         | No              |
+| Edit plan catalog (`/admin/subscriptions/plans`)      | Yes         | Read-only       |
+| Sync Stripe Prices / migrate subscribers to new Price | Yes         | No              |
 
-Gates live in `App\Support\Platform\PlatformPermissions`. Middleware `EnsureUserIsAdmin` blocks non-staff from all `/admin/*`. Workspace Owner/Workspace Admin never grants platform Admin.
+Gates live in `App\Support\Platform\PlatformPermissions`. Middleware `EnsureUserIsAdmin` blocks non-staff from all `/admin/*`. Business Owner/Admin never grants Platform Admin.
 
 ### Workspace billing permissions
 

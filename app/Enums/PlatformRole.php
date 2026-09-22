@@ -11,9 +11,8 @@ enum PlatformRole: string
     {
         return match ($this) {
             self::SuperAdmin => 'Super Admin',
-            // User-facing: Admin = RMSignage staff who work with/for Super Admin.
-            // Enum value remains platform_admin. Workspace Admin is a separate Workspace role.
-            self::PlatformAdmin => 'Admin',
+            // Distinct from Business Admin (workspace role). Enum value stays platform_admin.
+            self::PlatformAdmin => 'Platform Admin',
         };
     }
 

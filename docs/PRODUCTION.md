@@ -89,6 +89,24 @@ Safety guarantees:
 
 Normal sign-up still creates a clean empty Business — the mature demo is not onboarding default.
 
+## Platform staff accounts
+
+Production databases start empty — local `.local` staff accounts are never copied. Create platform staff explicitly:
+
+```bash
+php artisan rmsignage:create-super-admin --name="Ahmed" --email="you@example.com"
+php artisan rmsignage:create-platform-admin --name="Sarah" --email="ops@example.com"
+```
+
+- Password is prompted hidden (never a CLI flag / shell history risk)
+- Accounts are email-verified immediately (no verification email)
+- No Business membership is created
+- Login destination: `/admin`
+- Super Admin: full platform capabilities
+- Platform Admin: operational `/admin` access; cannot manage plans, feature flags, platform settings, platform roles, or delete Businesses
+- Only Super Admin may assign/remove platform roles; the last Super Admin cannot be demoted
+- `php artisan db:seed` / `LocalDevSeeder` refuse production
+
 ## Analytics retention
 
 | Data                  | Default                                           |

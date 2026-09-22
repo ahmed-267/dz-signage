@@ -7,10 +7,10 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Support\WorkspacePermissions;
 
-test('business admin label is Admin and stays distinct from the platform role', function () {
+test('business admin label is Admin and stays distinct from Platform Admin', function () {
     expect(WorkspaceRole::Admin->label())->toBe('Admin')
         ->and(WorkspaceRole::Admin->value)->toBe('admin')
-        ->and(PlatformRole::PlatformAdmin->label())->toBe('Admin')
+        ->and(PlatformRole::PlatformAdmin->label())->toBe('Platform Admin')
         ->and(PlatformRole::PlatformAdmin->value)->toBe('platform_admin')
         ->and(PlatformRole::SuperAdmin->label())->toBe('Super Admin');
 });
