@@ -231,7 +231,7 @@ Content Manager, Location Manager, and Viewer are view-only. Location Manager sc
 
 ## Platform Admin surface (`/admin`)
 
-Dedicated **AdminSidebar** (not customer `AppSidebar`): amber **RMSignage Admin** branding, role label (**Super Admin** / **Platform Admin**), **Back to App**, Figma-aligned nav.
+Dedicated **AdminSidebar** (not customer `AppSidebar`): amber **RMSignage Admin** branding, role label (**Super Admin** / **Platform Admin**), **Back to App**. Sidebar lists only high-level sections (Overview, Customers, Billing, Content, Operations, Support, Settings); underlying pages are tabs inside those sections. Settings (Feature Flags + Platform Settings) is Super Admin only.
 
 ### Super Admin vs Platform Admin
 
@@ -265,8 +265,9 @@ Gates live in `App\Support\Platform\PlatformPermissions`. Middleware `EnsureUser
 - Customers — Workspaces / Users / Screens list + detail (Workspace detail shows subscription summary)
 - Content — Templates
 - Operations — Screen Health, Publishing Jobs, System Health, Errors
-- Support — Support Requests, Audit Log
-- Platform — Feature Flags, Settings
+- Support — Support Requests
+- Settings — Platform Settings, Feature Flags, Audit Log
+- Platform — Feature Flags, Settings (sidebar label **Settings**; Super Admin only)
 - Billing — `/admin/subscriptions/plans` (Super Admin edits catalog; Platform Admin read-only), `/admin/subscriptions` and `/admin/invoices` use Cashier + mirrored Stripe invoices; truthful empty when Stripe is unconfigured. Super Admin may change Starter/Business subscriptions via Cashier when Stripe is configured; Enterprise remains Contact Sales. Price catalog changes do **not** auto-rebill existing subscribers.
 
 Critical mutations (platform roles, flags, settings, support status, template publish, billing changes) write immutable `audit_logs` via `AuditLogger`. Device tokens / password hashes / secrets / card data are never exposed in Admin payloads.

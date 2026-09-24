@@ -178,8 +178,9 @@ export default function AdminSupportIndex({
                 data-test="admin-support"
             >
                 <AdminPageHeader
-                    title="Support Requests"
-                    description="Customer help requests across the platform."
+                    title="Support"
+                    description="Customer support requests across the platform."
+                    badge={null}
                 />
 
                 <div className="flex flex-col gap-3 lg:flex-row">

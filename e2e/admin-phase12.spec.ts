@@ -23,13 +23,13 @@ test.describe('phase 12 admin portal', () => {
         await expect(page.getByTestId('admin-overview')).toBeVisible();
         await expect(page.getByText('RMSignage Admin').first()).toBeVisible();
         await expect(
-            page.getByTestId('admin-sidebar').getByText('Support Requests'),
+            page.getByTestId('admin-sidebar').getByText('Support'),
         ).toBeVisible();
         await expect(
-            page.getByTestId('admin-sidebar').getByText('Audit Log'),
+            page.getByTestId('admin-sidebar').getByText('Operations'),
         ).toBeVisible();
         await expect(
-            page.getByTestId('admin-sidebar').getByText('System Health'),
+            page.getByTestId('admin-sidebar').getByText('Customers'),
         ).toBeVisible();
         await expect(page.getByTestId('customer-sidebar')).toHaveCount(0);
     });
@@ -131,8 +131,14 @@ test.describe('phase 12 admin portal', () => {
         await page.getByRole('button', { name: /^confirm$/i }).click();
         await page.goto('/admin/audit-log');
         await expect(page.getByTestId('admin-audit-log')).toBeVisible();
+        await expect(page.getByTestId('admin-tab-audit-log')).toBeVisible();
         await expect(
-            page.getByText(/feature.?flag|widgets_enabled/i).first(),
+            page
+                .getByTestId('admin-section-tabs')
+                .getByText('Support Requests'),
+        ).toHaveCount(0);
+        await expect(
+            page.locator('table').getByText('feature_flag.updated').first(),
         ).toBeVisible({ timeout: 10_000 });
         // Restore flag
         await page.goto('/admin/feature-flags');

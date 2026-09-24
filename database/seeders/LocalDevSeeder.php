@@ -116,6 +116,7 @@ class LocalDevSeeder extends Seeder
             'email_verified_at' => now(),
             'is_admin' => $resolvedRole === PlatformRole::SuperAdmin,
             'platform_role' => $resolvedRole,
+            'onboarding_completed_at' => $user->onboarding_completed_at ?? now(),
         ])->save();
 
         if (! $user->wasRecentlyCreated) {

@@ -30,13 +30,13 @@ test.describe('admin vs customer shells', () => {
         );
 
         await expect(
-            page.getByTestId('admin-sidebar').getByText('Businesses'),
+            page.getByTestId('admin-sidebar').getByText('Customers'),
         ).toBeVisible();
         await expect(
-            page.getByTestId('admin-sidebar').getByText('Templates'),
+            page.getByTestId('admin-sidebar').getByText('Content'),
         ).toBeVisible();
         await expect(
-            page.getByTestId('admin-sidebar').getByText('Feature Flags'),
+            page.getByTestId('admin-sidebar').getByText('Settings'),
         ).toBeVisible();
 
         // Must not look like the customer product sidebar

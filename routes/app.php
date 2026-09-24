@@ -10,6 +10,7 @@ use App\Http\Controllers\App\HelpController;
 use App\Http\Controllers\App\LocationController;
 use App\Http\Controllers\App\MediaController;
 use App\Http\Controllers\App\PlaylistController;
+use App\Http\Controllers\App\ProductOnboardingController;
 use App\Http\Controllers\App\PublishingController;
 use App\Http\Controllers\App\ScheduleController;
 use App\Http\Controllers\App\ScreenController;
@@ -139,6 +140,8 @@ Route::middleware(['auth', 'verified', 'workspace'])
             ->middleware('throttle:screen-pair-claim')
             ->name('screens.pair.claim');
         Route::get('screens/{screen}', [ScreenController::class, 'show'])->name('screens.show');
+        Route::get('screens/{screen}/now-showing-preview', [ScreenController::class, 'nowShowingPreview'])
+            ->name('screens.now_showing_preview');
         Route::post('screens/{screen}/rename', [ScreenController::class, 'rename'])->name('screens.rename');
         Route::post('screens/{screen}/location', [ScreenController::class, 'updateLocation'])->name('screens.location');
         Route::post('screens/{screen}/status', [ScreenController::class, 'setStatus'])->name('screens.status');
@@ -168,6 +171,9 @@ Route::middleware(['auth', 'verified', 'workspace'])
 
         Route::get('help', [HelpController::class, 'show'])->name('help');
         Route::post('help', [HelpController::class, 'store'])->name('help.store');
+
+        Route::post('product-onboarding', [ProductOnboardingController::class, 'update'])
+            ->name('product_onboarding.update');
 
         Route::get('billing', [BillingController::class, 'show'])->name('billing');
         Route::post('billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');

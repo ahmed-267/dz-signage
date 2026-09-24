@@ -17,6 +17,7 @@ import {
     healthBadgeVariant,
     ScreenStateBadges,
 } from '@/components/screens/screen-state-badges';
+import { TvContentPreviewDialog } from '@/components/screens/tv-content-preview-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -53,7 +54,13 @@ import { useListSort } from '@/hooks/use-list-sort';
 import { formatLastSeen } from '@/lib/format-relative-time';
 import { ProductLabels, displayLabel } from '@/lib/product-labels';
 import { cn } from '@/lib/utils';
-import { publishing, screens as screensIndex } from '@/routes/app';
+import {
+    playlists as playlistsIndex,
+    publishing,
+    schedules as schedulesIndex,
+    screen_designs as screenDesignsIndex,
+    screens as screensIndex,
+} from '@/routes/app';
 import screenRoutes from '@/routes/app/screens';
 import type {
     PublishedDesignOption,
@@ -96,23 +103,80 @@ function StateBadges({ screen }: { screen: ScreenListItem }) {
     );
 }
 
-function CurrentContent({ screen }: { screen: ScreenListItem }) {
-    if (!screen.current_design_name) {
-        return <span className="text-muted-foreground">No content</span>;
+function CurrentContent({
+    screen,
+    onPreview,
+}: {
+    screen: ScreenListItem;
+    onPreview?: () => void;
+}) {
+    const showing = screen.now_showing;
+    const name =
+        showing?.content_name ??
+        screen.content_name ??
+        screen.current_design_name;
+
+    if (!name) {
+        return (
+            <span
+                className="text-muted-foreground"
+                data-test="tv-now-showing-empty"
+            >
+                No content
+            </span>
+        );
+    }
+
+    const typeLabel =
+        showing?.content_type_label ??
+        (showing?.content_source === 'schedule'
+            ? 'Schedule-controlled'
+            : 'Published');
+    const meta: string[] = [];
+    if (
+        showing?.playlist_item_count != null &&
+        showing.playlist_item_count > 0
+    ) {
+        meta.push(
+            `${showing.playlist_item_count} Screen${showing.playlist_item_count === 1 ? '' : 's'}`,
+        );
+    } else if (showing?.version_number != null) {
+        meta.push(`v${showing.version_number}`);
+    } else if (screen.current_version_number != null) {
+        meta.push(`v${screen.current_version_number}`);
+    }
+    if (showing?.window_ends_at_local) {
+        meta.push(`until ${showing.window_ends_at_local}`);
+    }
+    if (showing?.ack_label) {
+        meta.push(showing.ack_label);
+    } else if (screen.content_sync === 'out_of_sync') {
+        meta.push('Out of sync');
+    } else if (screen.content_sync === 'up_to_date') {
+        meta.push('Up to date');
     }
 
     return (
-        <div className="min-w-0">
-            <p className="truncate font-medium">{screen.current_design_name}</p>
+        <div className="min-w-0" data-test="tv-now-showing">
+            <p className="text-muted-foreground font-mono text-[10px] tracking-wider uppercase">
+                Now Showing
+            </p>
+            {onPreview ? (
+                <button
+                    type="button"
+                    onClick={onPreview}
+                    className="text-foreground hover:text-primary focus-visible:ring-ring max-w-full truncate text-left text-sm font-medium underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:outline-none"
+                    data-test={`tv-now-showing-name-${screen.id}`}
+                    aria-label={`Preview current content: ${name}`}
+                >
+                    {name}
+                </button>
+            ) : (
+                <p className="truncate font-medium">{name}</p>
+            )}
             <p className="text-muted-foreground text-xs">
-                {screen.current_version_number != null
-                    ? `v${screen.current_version_number}`
-                    : '—'}
-                {screen.content_sync === 'out_of_sync'
-                    ? ' · Out of sync'
-                    : screen.content_sync === 'up_to_date'
-                      ? ' · Up to date'
-                      : ''}
+                {typeLabel}
+                {meta.length > 0 ? ` · ${meta.join(' · ')}` : ''}
             </p>
         </div>
     );
@@ -123,6 +187,7 @@ export default function ScreensIndex({
     filters,
     counts,
     published_designs: publishedDesigns,
+    published_playlists: publishedPlaylists = [],
     locations = [],
     require_location: requireLocation = false,
     can_manage: canManage,
@@ -151,6 +216,10 @@ export default function ScreensIndex({
         null,
     );
     const [publishDesignId, setPublishDesignId] = useState<string>('');
+    const [publishPlaylistId, setPublishPlaylistId] = useState<string>('');
+    const [publishKind, setPublishKind] = useState<
+        'screen_design' | 'playlist' | 'schedule'
+    >('screen_design');
 
     const [bulkPublishOpen, setBulkPublishOpen] = useState(false);
     const [bulkDesignId, setBulkDesignId] = useState<string>('');
@@ -160,6 +229,9 @@ export default function ScreensIndex({
     );
     const [busyId, setBusyId] = useState<number | null>(null);
     const [selected, setSelected] = useState<number[]>([]);
+    const [previewScreen, setPreviewScreen] = useState<ScreenListItem | null>(
+        null,
+    );
 
     const { currentSort, currentDirection, onSort, ariaSort } = useListSort({
         baseUrl: screensIndex.url(),
@@ -300,19 +372,53 @@ export default function ScreensIndex({
     }
 
     function handlePublish() {
-        if (!publishScreen || !publishDesignId) {
+        if (!publishScreen) {
+            return;
+        }
+        if (publishKind === 'schedule') {
+            router.visit('/app/schedules/create');
+            return;
+        }
+        if (publishKind === 'playlist') {
+            if (!publishPlaylistId) {
+                return;
+            }
+            setBusyId(publishScreen.id);
+            router.post(
+                screenRoutes.publish.url(publishScreen.id),
+                {
+                    content_kind: 'playlist',
+                    playlist_id: Number(publishPlaylistId),
+                },
+                {
+                    preserveScroll: true,
+                    onFinish: () => {
+                        setBusyId(null);
+                        setPublishScreen(null);
+                        setPublishPlaylistId('');
+                        setPublishKind('screen_design');
+                    },
+                },
+            );
+            return;
+        }
+        if (!publishDesignId) {
             return;
         }
         setBusyId(publishScreen.id);
         router.post(
             screenRoutes.publish.url(publishScreen.id),
-            { screen_design_id: Number(publishDesignId) },
+            {
+                content_kind: 'screen_design',
+                screen_design_id: Number(publishDesignId),
+            },
             {
                 preserveScroll: true,
                 onFinish: () => {
                     setBusyId(null);
                     setPublishScreen(null);
                     setPublishDesignId('');
+                    setPublishKind('screen_design');
                 },
             },
         );
@@ -426,6 +532,7 @@ export default function ScreensIndex({
                         <Button
                             type="button"
                             data-test="screens-add"
+                            data-tour="pair-tv"
                             onClick={openAdd}
                         >
                             <Plus className="size-4" />
@@ -722,6 +829,9 @@ export default function ScreensIndex({
                                             <TableCell className="max-w-56 text-sm">
                                                 <CurrentContent
                                                     screen={screen}
+                                                    onPreview={() =>
+                                                        setPreviewScreen(screen)
+                                                    }
                                                 />
                                             </TableCell>
                                             <TableCell className="text-muted-foreground text-sm">
@@ -812,6 +922,8 @@ export default function ScreensIndex({
                                             onPublish={() => {
                                                 setPublishScreen(screen);
                                                 setPublishDesignId('');
+                                                setPublishPlaylistId('');
+                                                setPublishKind('screen_design');
                                             }}
                                             onStatus={handleStatus}
                                             onUnpair={() =>
@@ -831,17 +943,14 @@ export default function ScreensIndex({
                                                 {screen.health_label}
                                             </span>
                                         </p>
-                                        <p>
-                                            Design:{' '}
-                                            <span className="text-foreground">
-                                                {screen.current_design_name ??
-                                                    'None'}
-                                            </span>
-                                            {screen.current_version_number !=
-                                            null
-                                                ? ` (v${screen.current_version_number})`
-                                                : ''}
-                                        </p>
+                                        <div className="text-foreground">
+                                            <CurrentContent
+                                                screen={screen}
+                                                onPreview={() =>
+                                                    setPreviewScreen(screen)
+                                                }
+                                            />
+                                        </div>
                                         <p>
                                             Last seen:{' '}
                                             {formatLastSeen(
@@ -854,6 +963,44 @@ export default function ScreensIndex({
                                                 Orientation mismatch
                                             </p>
                                         ) : null}
+                                        <div className="flex flex-wrap gap-2 pt-2">
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="outline"
+                                                asChild
+                                            >
+                                                <Link
+                                                    href={screenRoutes.show.url(
+                                                        screen.id,
+                                                    )}
+                                                    data-test={`tv-view-content-${screen.id}`}
+                                                >
+                                                    View TV
+                                                </Link>
+                                            </Button>
+                                            {canPublish ? (
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setPublishScreen(
+                                                            screen,
+                                                        );
+                                                        setPublishDesignId('');
+                                                        setPublishPlaylistId(
+                                                            '',
+                                                        );
+                                                        setPublishKind(
+                                                            'screen_design',
+                                                        );
+                                                    }}
+                                                    data-test={`tv-change-content-${screen.id}`}
+                                                >
+                                                    Change Content
+                                                </Button>
+                                            ) : null}
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -890,28 +1037,70 @@ export default function ScreensIndex({
                                     />
                                 </div>
                             </div>
-                            <DialogFooter className="sm:justify-between">
+                            <DialogFooter className="flex-col gap-2 sm:flex-col sm:space-x-0">
+                                <p className="text-muted-foreground w-full text-center text-sm">
+                                    What would you like to show?
+                                </p>
+                                <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-center">
+                                    {canPublish ? (
+                                        <>
+                                            <Button type="button" asChild>
+                                                <Link
+                                                    href={screenDesignsIndex.url()}
+                                                    data-test="screens-pair-publish-screen"
+                                                >
+                                                    Publish a Screen
+                                                </Link>
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="secondary"
+                                                asChild
+                                            >
+                                                <Link
+                                                    href={playlistsIndex.url()}
+                                                    data-test="screens-pair-publish-playlist"
+                                                >
+                                                    Publish a Playlist
+                                                </Link>
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                asChild
+                                            >
+                                                <Link
+                                                    href={schedulesIndex.url()}
+                                                    data-test="screens-pair-setup-schedule"
+                                                >
+                                                    Set up a Schedule
+                                                </Link>
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            asChild
+                                        >
+                                            <Link href={publishing.url()}>
+                                                Open Publishing
+                                            </Link>
+                                        </Button>
+                                    )}
+                                </div>
                                 <Button
                                     type="button"
-                                    variant="outline"
+                                    variant="ghost"
+                                    className="w-full"
                                     onClick={() => {
                                         setAddOpen(false);
                                         setPairStep('form');
                                     }}
+                                    data-test="screens-pair-done"
                                 >
                                     Done
                                 </Button>
-                                {canPublish ? (
-                                    <Button type="button" asChild>
-                                        <Link
-                                            href={publishing.url()}
-                                            data-test="screens-pair-publish-cta"
-                                        >
-                                            <Upload className="size-4" />
-                                            Publish content
-                                        </Link>
-                                    </Button>
-                                ) : null}
                             </DialogFooter>
                         </>
                     ) : (
@@ -1183,15 +1372,30 @@ export default function ScreensIndex({
             <PublishContentDialog
                 open={publishScreen !== null}
                 designs={publishedDesigns}
+                playlists={publishedPlaylists}
                 designId={publishDesignId}
+                playlistId={publishPlaylistId}
+                kind={publishKind}
+                onKindChange={setPublishKind}
                 onDesignIdChange={setPublishDesignId}
+                onPlaylistIdChange={setPublishPlaylistId}
                 onClose={() => {
                     setPublishScreen(null);
                     setPublishDesignId('');
+                    setPublishPlaylistId('');
+                    setPublishKind('screen_design');
                 }}
                 onConfirm={handlePublish}
-                title="Publish Content"
-                description={`Choose a published design for ${publishScreen?.name ?? `this ${ProductLabels.displaySingular}`}.`}
+                title="Change Content"
+                description={`What do you want to show on ${publishScreen?.name ?? `this ${ProductLabels.displaySingular}`}?`}
+                currentName={
+                    publishScreen?.now_showing?.content_name ??
+                    publishScreen?.current_design_name
+                }
+                scheduleControlled={
+                    publishScreen?.now_showing?.content_source === 'schedule'
+                }
+                scheduleName={publishScreen?.now_showing?.schedule_name}
             />
 
             <PublishContentDialog
@@ -1248,6 +1452,12 @@ export default function ScreensIndex({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <TvContentPreviewDialog
+                screenId={previewScreen?.id ?? null}
+                screenName={previewScreen?.name}
+                onClose={() => setPreviewScreen(null)}
+            />
         </>
     );
 }
@@ -1340,26 +1550,47 @@ function RowActions({
 function PublishContentDialog({
     open,
     designs,
+    playlists = [],
     designId,
+    playlistId = '',
+    kind = 'screen_design',
+    onKindChange,
     onDesignIdChange,
+    onPlaylistIdChange,
     onClose,
     onConfirm,
     title,
     description,
+    currentName,
+    scheduleControlled = false,
+    scheduleName,
     confirmTestId = 'screen-publish-confirm',
     selectTestId = 'screen-publish-design',
 }: {
     open: boolean;
     designs: PublishedDesignOption[];
+    playlists?: PublishedDesignOption[];
     designId: string;
+    playlistId?: string;
+    kind?: 'screen_design' | 'playlist' | 'schedule';
+    onKindChange?: (kind: 'screen_design' | 'playlist' | 'schedule') => void;
     onDesignIdChange: (id: string) => void;
+    onPlaylistIdChange?: (id: string) => void;
     onClose: () => void;
     onConfirm: () => void;
     title: string;
     description: string;
+    currentName?: string | null;
+    scheduleControlled?: boolean;
+    scheduleName?: string | null;
     confirmTestId?: string;
     selectTestId?: string;
 }) {
+    const showKinds = onKindChange != null;
+    const canConfirm =
+        kind === 'schedule' ||
+        (kind === 'playlist' ? Boolean(playlistId) : Boolean(designId));
+
     return (
         <Dialog
             open={open}
@@ -1374,29 +1605,119 @@ function PublishContentDialog({
                     <DialogTitle>{title}</DialogTitle>
                     <DialogDescription>{description}</DialogDescription>
                 </DialogHeader>
-                {designs.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">
-                        No published Screens yet. Publish a Screen first.
-                    </p>
-                ) : (
-                    <div className="space-y-1.5">
-                        <Label htmlFor={selectTestId}>Design</Label>
-                        <select
-                            id={selectTestId}
-                            className={selectClassName}
-                            value={designId}
-                            onChange={(e) => onDesignIdChange(e.target.value)}
-                            data-test={selectTestId}
-                        >
-                            <option value="">Select a design…</option>
-                            {designs.map((design) => (
-                                <option key={design.id} value={design.id}>
-                                    {design.name} ({design.orientation})
-                                </option>
-                            ))}
-                        </select>
+                {scheduleControlled ? (
+                    <div
+                        className="border-border bg-muted/40 rounded-lg border p-3 text-sm"
+                        data-test="change-content-schedule-note"
+                    >
+                        <p className="font-medium">Controlled by Schedule</p>
+                        <p className="text-muted-foreground mt-1">
+                            {scheduleName ?? 'An active schedule'} is driving
+                            this TV right now. Publishing sets the always-on
+                            fallback — scheduled content still wins while its
+                            window matches.
+                        </p>
                     </div>
-                )}
+                ) : null}
+                {currentName ? (
+                    <p className="text-muted-foreground text-sm">
+                        Current:{' '}
+                        <span className="text-foreground font-medium">
+                            {currentName}
+                        </span>
+                    </p>
+                ) : null}
+                {showKinds ? (
+                    <div className="space-y-2" data-test="change-content-kind">
+                        {(
+                            [
+                                ['screen_design', 'Screen'],
+                                ['playlist', 'Playlist'],
+                                ['schedule', 'Use Schedule'],
+                            ] as const
+                        ).map(([value, label]) => (
+                            <label
+                                key={value}
+                                className="border-border hover:bg-muted/40 flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm"
+                            >
+                                <input
+                                    type="radio"
+                                    name="change-content-kind"
+                                    value={value}
+                                    checked={kind === value}
+                                    onChange={() => onKindChange?.(value)}
+                                />
+                                {label}
+                            </label>
+                        ))}
+                    </div>
+                ) : null}
+                {kind === 'screen_design' ? (
+                    designs.length === 0 ? (
+                        <p className="text-muted-foreground text-sm">
+                            No published Screens yet. Publish a Screen first.
+                        </p>
+                    ) : (
+                        <div className="space-y-1.5">
+                            <Label htmlFor={selectTestId}>Replace with</Label>
+                            <select
+                                id={selectTestId}
+                                className={selectClassName}
+                                value={designId}
+                                onChange={(e) =>
+                                    onDesignIdChange(e.target.value)
+                                }
+                                data-test={selectTestId}
+                            >
+                                <option value="">Select a Screen…</option>
+                                {designs.map((design) => (
+                                    <option key={design.id} value={design.id}>
+                                        {design.name} ({design.orientation})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )
+                ) : null}
+                {kind === 'playlist' ? (
+                    playlists.length === 0 ? (
+                        <p className="text-muted-foreground text-sm">
+                            No published Playlists yet.
+                        </p>
+                    ) : (
+                        <div className="space-y-1.5">
+                            <Label htmlFor="screen-publish-playlist">
+                                Replace with
+                            </Label>
+                            <select
+                                id="screen-publish-playlist"
+                                className={selectClassName}
+                                value={playlistId}
+                                onChange={(e) =>
+                                    onPlaylistIdChange?.(e.target.value)
+                                }
+                                data-test="screen-publish-playlist"
+                            >
+                                <option value="">Select a Playlist…</option>
+                                {playlists.map((playlist) => (
+                                    <option
+                                        key={playlist.id}
+                                        value={playlist.id}
+                                    >
+                                        {playlist.name} ({playlist.orientation})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )
+                ) : null}
+                {kind === 'schedule' ? (
+                    <p className="text-muted-foreground text-sm">
+                        Continue to Schedules to pin a published Playlist to
+                        this TV on a timetable. Schedules outrank direct
+                        publishes while they match.
+                    </p>
+                ) : null}
                 <DialogFooter>
                     <Button type="button" variant="outline" onClick={onClose}>
                         Cancel
@@ -1404,10 +1725,12 @@ function PublishContentDialog({
                     <Button
                         type="button"
                         data-test={confirmTestId}
-                        disabled={!designId}
+                        disabled={!canConfirm}
                         onClick={onConfirm}
                     >
-                        Publish
+                        {kind === 'schedule'
+                            ? 'Open Schedules'
+                            : 'Publish to TV'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

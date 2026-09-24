@@ -260,8 +260,9 @@ test.describe('phase 6 screen presence and health', () => {
 
         await page.goto('/admin/screens');
         await expect(
-            page.getByRole('heading', { name: 'TVs', exact: true }),
+            page.getByRole('heading', { name: 'Customers', exact: true }),
         ).toBeVisible();
+        await expect(page.getByTestId('admin-tab-tvs')).toBeVisible();
         await page.getByTestId('admin-screens-search').fill(screenName);
         await expect(
             page.getByTestId(`admin-screen-row-${screenId}`),

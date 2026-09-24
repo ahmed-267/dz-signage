@@ -95,6 +95,12 @@ Create Account
     → Create Playlist → Create Schedule → Activate schedule
 ```
 
+After Business creation, new Owners receive a **contextual product tour** (coach marks on real UI) plus a Dashboard checklist through first publish. Progress is stored on the user (`onboarding_*` columns). Skip / resume / **Replay Product Tour** (Help & Support) are supported. Replay keeps historical `onboarding_completed_at` and does not create Business/Screen/TV data. Demo and mature workspaces do not auto-start the tour, but may still replay from Help.
+
+**After publishing**, Paired TVs is the primary “what is showing?” surface (`now_showing` from `ScreenContentResolver`). **Preview** on a TV card/detail opens a read-only modal that renders the resolver-backed Screen or Playlist (shared `PlaylistPreviewPlayer`). Change Content on a TV publishes Screen or Playlist via `PublishContentToScreens` (schedules still win while matching). Publishing remains the ops/history centre.
+
+Playlist transitions (`none` / `fade` / `slide_left` / `slide_right`) share one double-buffer engine (`PlaylistPreviewPlayer` + `transitions.ts`) for Preview and `/player`. Lifecycle: IDLE → PREPARING (mount both layers at start poses) → ANIMATING → COMMIT. Fade is a true crossfade (A 1→0, B 0→1). Slides are push/carousel (both layers translate together). Fast/Normal/Slow ≈ 400/700/1000ms. Transition duration is visual only and does not change `PlaylistRuntimeCalculator` totals.
+
 Some steps may later be skippable. Media, Templates, Screen Designs, Playlists, Screens/pairing, Publish to Screen (design or playlist), Schedules, Locations, Brand Kit, Billing, and Analytics are implemented.
 
 ## Screen state model

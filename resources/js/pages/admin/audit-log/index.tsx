@@ -2,6 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AdminPageHeader } from '@/components/admin/admin-page-header';
+import { ADMIN_SETTINGS_TABS } from '@/components/admin/admin-section-header';
 import {
     Card,
     CardContent,
@@ -176,8 +177,11 @@ export default function AdminAuditLogIndex({
                 data-test="admin-audit-log"
             >
                 <AdminPageHeader
-                    title="Audit Log"
-                    description="Immutable platform audit trail. Entries cannot be edited or deleted."
+                    title="Settings"
+                    description="Platform settings, feature flags and audit log."
+                    badge={null}
+                    tabs={ADMIN_SETTINGS_TABS}
+                    activeTab="audit-log"
                 />
 
                 <div className="flex flex-col gap-3 sm:flex-row">

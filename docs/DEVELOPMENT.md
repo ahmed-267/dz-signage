@@ -147,7 +147,7 @@ Password is entered hidden (never via flags). Accounts are verified immediately 
 | `/admin/templates`                                  | Platform Templates (Super Admin / Admin)                                    |
 | `/admin/templates/{id}/builder` (or `/edit`)        | Platform Template Builder                                                   |
 
-`/admin` uses a dedicated **AdminSidebar** (amber **RMSignage Admin**, **Back to App**) — not the customer sidebar. Admin Billing, Operations, Support, and Platform settings routes are implemented (Phase 12–13); do not treat them as coming-soon placeholders.
+`/admin` uses a dedicated **AdminSidebar** (amber **RMSignage Admin**, **Back to App**) — high-level sections only (Overview, Customers, Billing, Content, Operations, Support, Settings). Leaf pages keep working and show section tabs (Audit Log lives under Settings). Product tour: `POST /app/product-onboarding` with Help **Replay Product Tour**. Paired TVs list/detail expose resolver-backed `now_showing` plus read-only `GET /app/screens/{screen}/now-showing-preview`.
 
 There is **no** customer Template Builder and no workspace-owned Templates. Use Template creates a workspace Screen Design from the published schema.
 

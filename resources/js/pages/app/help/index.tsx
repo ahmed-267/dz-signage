@@ -1,5 +1,6 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import { RestartProductTourButton } from '@/components/onboarding/product-onboarding';
 import InputError from '@/components/input-error';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { Button } from '@/components/ui/button';
@@ -107,14 +108,16 @@ export default function AppHelpIndex({
         <>
             <Head title="Help & Support" />
             <div className="flex h-full flex-1 flex-col gap-6 p-4 md:p-6">
-                <div>
-                    <h1 className="font-display text-2xl font-semibold tracking-tight">
-                        Help & Support
-                    </h1>
-                    <p className="text-muted-foreground mt-1 text-sm">
-                        Send a request to the RMSignage platform team
-                        {support_email ? ` (${support_email})` : ''}.
-                    </p>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <h1 className="font-display text-2xl font-semibold tracking-tight">
+                            Help & Support
+                        </h1>
+                        <p className="text-muted-foreground mt-1 text-sm">
+                            Send a request to the RMSignage platform team
+                            {support_email ? ` (${support_email})` : ''}.
+                        </p>
+                    </div>
                 </div>
 
                 {flash?.success ? (
@@ -125,6 +128,23 @@ export default function AppHelpIndex({
                         {flash.success}
                     </p>
                 ) : null}
+
+                <Card className="shadow-none" data-test="help-product-tour">
+                    <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-1.5">
+                            <CardTitle className="font-display text-lg">
+                                Product Tour
+                            </CardTitle>
+                            <CardDescription>
+                                Need a refresher? Replay the RMSignage guided
+                                tour and walk through creating and publishing
+                                content. Your Business, Screens and TVs are not
+                                reset.
+                            </CardDescription>
+                        </div>
+                        <RestartProductTourButton className="shrink-0" />
+                    </CardHeader>
+                </Card>
 
                 <div className="grid gap-6 lg:grid-cols-2">
                     <Card className="shadow-none">

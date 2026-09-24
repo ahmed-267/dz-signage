@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import { AdminPageHeader } from '@/components/admin/admin-page-header';
+import { ADMIN_SETTINGS_TABS } from '@/components/admin/admin-section-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -112,8 +113,11 @@ export default function AdminFeatureFlags({
                 data-test="admin-feature-flags"
             >
                 <AdminPageHeader
-                    title="Feature Flags"
-                    description="Toggle platform features. Changes require confirmation."
+                    title="Settings"
+                    description="Platform settings, feature flags and audit log."
+                    badge={null}
+                    tabs={ADMIN_SETTINGS_TABS}
+                    activeTab="feature-flags"
                 />
 
                 {!allowManage ? (

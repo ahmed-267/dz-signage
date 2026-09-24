@@ -23,6 +23,8 @@ export type PlaylistConfig = {
     max_loop_count: number;
     default_transition: PlaylistTransition;
     default_transition_speed: PlaylistTransitionSpeed;
+    /** Mirrors `PlaylistTransitionSpeed::milliseconds()` — visual only. */
+    transition_speed_ms: Record<PlaylistTransitionSpeed, number>;
     transitions: { value: PlaylistTransition; label: string }[];
     transition_speeds: { value: PlaylistTransitionSpeed; label: string }[];
 };

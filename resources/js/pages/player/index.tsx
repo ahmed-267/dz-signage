@@ -1040,6 +1040,7 @@ export default function Player() {
                             autoPlay
                             loop
                             runtime="player"
+                            surface="player"
                             widgetData={widgetData}
                             isOnline={isOnline}
                             className="min-h-dvh w-full"

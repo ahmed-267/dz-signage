@@ -5,6 +5,8 @@ import {
     healthBadgeVariant,
     ScreenStateBadges,
 } from '@/components/screens/screen-state-badges';
+import { AdminPageHeader } from '@/components/admin/admin-page-header';
+import { ADMIN_CUSTOMERS_TABS } from '@/components/admin/admin-section-header';
 import { Badge } from '@/components/ui/badge';
 import {
     Card,
@@ -112,17 +114,13 @@ export default function AdminScreensIndex({
         <>
             <Head title="TVs" />
             <div className="flex h-full flex-1 flex-col gap-6 p-4 md:p-6">
-                <div>
-                    <div className="mb-1">
-                        <Badge variant="info">Super Admin</Badge>
-                    </div>
-                    <h1 className="font-display text-2xl font-semibold tracking-tight">
-                        TVs
-                    </h1>
-                    <p className="text-muted-foreground mt-1 text-sm">
-                        Platform-wide TV directory (read-only).
-                    </p>
-                </div>
+                <AdminPageHeader
+                    title="Customers"
+                    description="Businesses, users and paired TVs across the platform."
+                    badge={null}
+                    tabs={ADMIN_CUSTOMERS_TABS}
+                    activeTab="tvs"
+                />
 
                 <div className="flex flex-col gap-3">
                     <div className="relative sm:max-w-md">

@@ -2,6 +2,7 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useEffect } from 'react';
 import { AdminPageHeader } from '@/components/admin/admin-page-header';
+import { ADMIN_SETTINGS_TABS } from '@/components/admin/admin-section-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -101,8 +102,11 @@ export default function AdminSettings({
                 data-test="admin-settings"
             >
                 <AdminPageHeader
-                    title="Platform Settings"
-                    description="Allowlisted platform configuration. Only Super Admins can edit."
+                    title="Settings"
+                    description="Platform settings, feature flags and audit log."
+                    badge={null}
+                    tabs={ADMIN_SETTINGS_TABS}
+                    activeTab="platform"
                 />
 
                 {flash?.success ? (

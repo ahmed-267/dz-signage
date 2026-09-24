@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Download, ExternalLink, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AdminPageHeader } from '@/components/admin/admin-page-header';
+import { ADMIN_BILLING_TABS } from '@/components/admin/admin-section-header';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -135,7 +136,13 @@ function InvoicesIndex({
                 className="flex h-full flex-1 flex-col gap-6 p-4 md:p-6"
                 data-test="admin-invoices"
             >
-                <AdminPageHeader title={title} description={description} />
+                <AdminPageHeader
+                    title="Billing"
+                    description="Plans, subscriptions and invoices."
+                    badge={null}
+                    tabs={ADMIN_BILLING_TABS}
+                    activeTab="invoices"
+                />
 
                 <div className="flex flex-col gap-3 sm:flex-row">
                     <div className="relative flex-1 sm:max-w-md">

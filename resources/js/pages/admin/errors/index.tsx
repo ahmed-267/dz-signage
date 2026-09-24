@@ -2,6 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AdminPageHeader } from '@/components/admin/admin-page-header';
+import { ADMIN_OPERATIONS_TABS } from '@/components/admin/admin-section-header';
 import { StatusBadge } from '@/components/admin/status-badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -155,8 +156,11 @@ export default function AdminErrorsIndex({
                 data-test="admin-errors"
             >
                 <AdminPageHeader
-                    title="Errors"
-                    description="Platform and Player errors across workspaces."
+                    title="Operations"
+                    description="Monitor TVs, deployments and platform health."
+                    badge={null}
+                    tabs={ADMIN_OPERATIONS_TABS}
+                    activeTab="errors"
                 />
 
                 <div className="flex flex-col gap-3 lg:flex-row">

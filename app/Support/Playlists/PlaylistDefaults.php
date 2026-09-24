@@ -78,6 +78,11 @@ class PlaylistDefaults
             'max_loop_count' => self::maxLoopCount(),
             'default_transition' => self::transition()->value,
             'default_transition_speed' => self::transitionSpeed()->value,
+            'transition_speed_ms' => [
+                'fast' => PlaylistTransitionSpeed::Fast->milliseconds(),
+                'normal' => PlaylistTransitionSpeed::Normal->milliseconds(),
+                'slow' => PlaylistTransitionSpeed::Slow->milliseconds(),
+            ],
             'transitions' => array_map(
                 fn (PlaylistTransition $t) => ['value' => $t->value, 'label' => $t->label()],
                 PlaylistTransition::cases(),

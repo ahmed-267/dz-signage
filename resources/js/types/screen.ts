@@ -54,6 +54,38 @@ export type ScreenListItem = {
     playback_state: string | null;
     updated_at: string | null;
     created_at: string | null;
+    content_source?: ScreenContentSource;
+    content_source_label?: string;
+    content_type?: string | null;
+    content_name?: string | null;
+    /** Resolver-backed Now Showing payload (Schedule → Deployment → none). */
+    now_showing?: ScreenNowShowing | null;
+};
+
+export type ScreenNowShowing = {
+    content_source: ScreenContentSource;
+    content_source_label: string;
+    content_name: string | null;
+    content_type: 'schedule' | 'playlist' | 'screen_design' | null;
+    content_type_label: string | null;
+    version_number: number | null;
+    playlist_item_count: number | null;
+    schedule_id: number | null;
+    schedule_name: string | null;
+    schedule_priority: number | null;
+    window_ends_at: string | null;
+    window_ends_at_local: string | null;
+    deployment_id: number | null;
+    deployed_at: string | null;
+    sync_state: ScreenContentSync;
+    sync_state_label: string;
+    ack_state: string;
+    ack_label: string;
+    next_schedule: {
+        id: number;
+        name: string;
+        starts_at_local: string;
+    } | null;
 };
 
 export type ScreenDeviceDetail = {
@@ -181,6 +213,7 @@ export type ScreensIndexProps = {
     filters: ScreenIndexFilters;
     counts: ScreenCounts;
     published_designs: PublishedDesignOption[];
+    published_playlists?: PublishedDesignOption[];
     locations?: ScreenLocationOption[];
     require_location?: boolean;
     can_manage: boolean;
@@ -198,6 +231,7 @@ export type ScreenShowProps = {
     screen: ScreenDetail;
     recent_heartbeats: ScreenHeartbeatRow[];
     published_designs: PublishedDesignOption[];
+    published_playlists?: PublishedDesignOption[];
     locations?: ScreenLocationOption[];
     can_manage: boolean;
     can_publish: boolean;

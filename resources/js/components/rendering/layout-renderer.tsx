@@ -17,6 +17,7 @@ import {
 import {
     useCallback,
     useEffect,
+    useRef,
     useState,
     type CSSProperties,
     type PointerEvent as ReactPointerEvent,
@@ -206,6 +207,64 @@ function paintsOutsideScale(element: LayoutElement): boolean {
     return resolveWidgetType(element.props ?? {}) === 'embed';
 }
 
+/**
+ * Signage video paint. When `mediaActive` is false (outgoing transition layer),
+ * pause and keep muted so audio never leaks after a slide/fade.
+ */
+function SignageVideo({
+    src,
+    opacity,
+    objectFit,
+    borderRadius,
+    muted,
+    loop,
+    mediaActive,
+}: {
+    src: string;
+    opacity: number;
+    objectFit: 'contain' | 'cover' | 'fill';
+    borderRadius?: number;
+    muted: boolean;
+    loop: boolean;
+    mediaActive: boolean;
+}) {
+    const ref = useRef<HTMLVideoElement>(null);
+
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) {
+            return;
+        }
+
+        if (mediaActive) {
+            void el.play().catch(() => {
+                // Autoplay may be blocked; muted play still preferred.
+            });
+            return;
+        }
+
+        el.pause();
+        el.muted = true;
+    }, [mediaActive, src]);
+
+    return (
+        <video
+            ref={ref}
+            src={src}
+            className="h-full w-full"
+            style={{
+                opacity,
+                objectFit,
+                borderRadius,
+            }}
+            muted={muted || !mediaActive}
+            loop={loop}
+            autoPlay={mediaActive}
+            playsInline
+        />
+    );
+}
+
 function ElementContent({
     element,
     mediaMap,
@@ -213,6 +272,7 @@ function ElementContent({
     widgetData,
     isOnline,
     liveInteract = false,
+    mediaActive = true,
 }: {
     element: LayoutElement;
     mediaMap?: LayoutMediaMap;
@@ -220,6 +280,8 @@ function ElementContent({
     widgetData?: Record<string, unknown>;
     isOnline?: boolean;
     liveInteract?: boolean;
+    /** False for outgoing playlist transition layers — pause video/live audio. */
+    mediaActive?: boolean;
 }) {
     const props = element.props ?? {};
     const opacity =
@@ -285,18 +347,14 @@ function ElementContent({
         if (media?.url) {
             if (element.type === 'video') {
                 return (
-                    <video
+                    <SignageVideo
                         src={media.url}
-                        className="h-full w-full"
-                        style={{
-                            opacity,
-                            objectFit,
-                            borderRadius,
-                        }}
+                        opacity={opacity}
+                        objectFit={objectFit}
+                        borderRadius={borderRadius}
                         muted={props.muted !== false}
                         loop={props.loop !== false}
-                        autoPlay
-                        playsInline
+                        mediaActive={mediaActive}
                     />
                 );
             }
@@ -362,14 +420,33 @@ function ElementContent({
     }
 
     if (element.type === 'widget') {
+        // Outgoing transition layers must not keep live/embed audio playing.
+        const mutedElement = mediaActive
+            ? element
+            : {
+                  ...element,
+                  props: {
+                      ...element.props,
+                      muted: true,
+                      volume: 0,
+                      config: {
+                          ...((element.props?.config as
+                              | Record<string, unknown>
+                              | undefined) ?? {}),
+                          muted: true,
+                          volume: 0,
+                      },
+                  },
+              };
+
         return (
             <WidgetRenderer
-                element={element}
+                element={mutedElement}
                 mode={widgetMode}
                 mediaMap={mediaMap}
                 widgetData={widgetData}
                 isOnline={isOnline}
-                interact={liveInteract}
+                interact={liveInteract && mediaActive}
             />
         );
     }
@@ -418,6 +495,11 @@ type LayoutRendererProps = {
     /** Cached / live widget payloads keyed by PHP-compatible keys. */
     widgetData?: Record<string, unknown>;
     isOnline?: boolean;
+    /**
+     * When false, pause videos and suppress live audio — used for outgoing
+     * playlist transition layers so media does not leak after a fade/slide.
+     */
+    mediaActive?: boolean;
 };
 
 /**
@@ -440,6 +522,7 @@ export function LayoutRenderer({
     mediaMap,
     widgetData,
     isOnline = true,
+    mediaActive = true,
 }: LayoutRendererProps) {
     const { width, height, background } = schema.canvas;
     const scale = computeScale(width, height, fitWidth, fitHeight);
@@ -497,6 +580,7 @@ export function LayoutRenderer({
                     widgetMode={widgetMode}
                     widgetData={widgetData}
                     isOnline={isOnline}
+                    mediaActive={mediaActive}
                     onSelect={onSelect}
                     onElementChange={onElementChange}
                 />
@@ -540,6 +624,7 @@ function LayoutElementView({
     widgetMode,
     widgetData,
     isOnline,
+    mediaActive = true,
     onSelect,
     onElementChange,
 }: {
@@ -554,6 +639,7 @@ function LayoutElementView({
     widgetMode: WidgetRuntimeMode;
     widgetData?: Record<string, unknown>;
     isOnline?: boolean;
+    mediaActive?: boolean;
     onSelect?: (id: string | null) => void;
     onElementChange?: (id: string, partial: ElementGeometryPatch) => void;
 }) {
@@ -754,6 +840,7 @@ function LayoutElementView({
             widgetData={widgetData}
             isOnline={isOnline}
             liveInteract={liveInteract}
+            mediaActive={mediaActive}
         />
     ) : (
         <div
@@ -771,6 +858,7 @@ function LayoutElementView({
                 widgetData={widgetData}
                 isOnline={isOnline}
                 liveInteract={liveInteract}
+                mediaActive={mediaActive}
             />
         </div>
     );

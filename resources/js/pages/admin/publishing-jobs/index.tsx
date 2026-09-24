@@ -1,6 +1,8 @@
 import { Head, router } from '@inertiajs/react';
 import { Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { AdminPageHeader } from '@/components/admin/admin-page-header';
+import { ADMIN_OPERATIONS_TABS } from '@/components/admin/admin-section-header';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { ListPagination } from '@/components/ui/list-pagination';
@@ -109,15 +111,13 @@ export default function AdminPublishingJobs({
                 className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 p-4 md:p-6"
                 data-test="admin-publishing-jobs"
             >
-                <div>
-                    <h1 className="font-display text-2xl font-semibold tracking-tight">
-                        Publishing Jobs
-                    </h1>
-                    <p className="text-muted-foreground mt-0.5 text-sm">
-                        Read-only Deployment activity across workspaces. Sync
-                        state comes from Player heartbeats.
-                    </p>
-                </div>
+                <AdminPageHeader
+                    title="Operations"
+                    description="Read-only Deployment activity across workspaces. Sync state comes from Player heartbeats."
+                    badge={null}
+                    tabs={ADMIN_OPERATIONS_TABS}
+                    activeTab="publishing"
+                />
 
                 <div className="flex flex-col gap-3 sm:flex-row">
                     <div className="relative flex-1">

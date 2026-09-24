@@ -1,6 +1,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { Layers, Plus, Search } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
+import { AdminPageHeader } from '@/components/admin/admin-page-header';
 import InputError from '@/components/input-error';
 import { LayoutRenderer } from '@/components/rendering/layout-renderer';
 import { Badge } from '@/components/ui/badge';
@@ -149,18 +150,11 @@ export default function AdminTemplatesIndex({
             <Head title="Platform Templates" />
             <div className="mx-auto flex h-full w-full max-w-7xl flex-1 flex-col gap-6 p-4 md:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                        <div className="mb-1">
-                            <Badge variant="info">Super Admin</Badge>
-                        </div>
-                        <h1 className="font-display text-2xl font-semibold tracking-tight">
-                            Templates
-                        </h1>
-                        <p className="text-muted-foreground mt-0.5 font-mono text-sm">
-                            Manage platform-wide templates available to all
-                            businesses
-                        </p>
-                    </div>
+                    <AdminPageHeader
+                        title="Content"
+                        description="Manage platform-wide templates available to all businesses."
+                        badge={null}
+                    />
                     <Button
                         type="button"
                         data-test="admin-templates-create"

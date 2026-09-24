@@ -3,6 +3,8 @@ import {
     healthBadgeVariant,
     ScreenStateBadges,
 } from '@/components/screens/screen-state-badges';
+import { AdminPageHeader } from '@/components/admin/admin-page-header';
+import { ADMIN_OPERATIONS_TABS } from '@/components/admin/admin-section-header';
 import { Badge } from '@/components/ui/badge';
 import {
     Card,
@@ -107,20 +109,13 @@ export default function AdminScreenHealth({
                 className="flex h-full flex-1 flex-col gap-6 p-4 md:p-6"
                 data-test="admin-screen-health"
             >
-                <div>
-                    <div className="mb-1">
-                        <Badge variant="info">Super Admin</Badge>
-                    </div>
-                    <h1 className="font-display text-2xl font-semibold tracking-tight">
-                        TV Health
-                    </h1>
-                    <p className="text-muted-foreground mt-1 text-sm">
-                        Health window: last {healthWindowSeconds} seconds. A TV
-                        is Online when its Player has reported within this
-                        window (heartbeat every {heartbeatIntervalSeconds}s).
-                        This is current presence, not the Analytics date range.
-                    </p>
-                </div>
+                <AdminPageHeader
+                    title="Operations"
+                    description={`Health window: last ${healthWindowSeconds} seconds. A TV is Online when its Player has reported within this window (heartbeat every ${heartbeatIntervalSeconds}s). This is current presence, not the Analytics date range.`}
+                    badge={null}
+                    tabs={ADMIN_OPERATIONS_TABS}
+                    activeTab="tv-health"
+                />
 
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                     {SUMMARY.map((card) => (

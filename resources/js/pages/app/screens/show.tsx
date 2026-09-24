@@ -5,6 +5,7 @@ import {
     contentSyncBadgeVariant,
     healthBadgeVariant,
 } from '@/components/screens/screen-state-badges';
+import { TvContentPreviewDialog } from '@/components/screens/tv-content-preview-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -59,6 +60,7 @@ export default function ScreenShow({
     const [publishDesignId, setPublishDesignId] = useState('');
     const [unpairOpen, setUnpairOpen] = useState(false);
     const [busy, setBusy] = useState(false);
+    const [previewOpen, setPreviewOpen] = useState(false);
 
     const isActive = screen.operational_status === 'active';
     const device = screen.device;
@@ -156,6 +158,14 @@ export default function ScreenShow({
                         </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            data-test="screen-preview-now-showing"
+                            onClick={() => setPreviewOpen(true)}
+                        >
+                            Preview
+                        </Button>
                         {canPublish ? (
                             <Button
                                 type="button"
@@ -163,7 +173,7 @@ export default function ScreenShow({
                                 onClick={() => setPublishOpen(true)}
                             >
                                 <Upload className="size-4" />
-                                Publish Content
+                                Change Content
                             </Button>
                         ) : null}
                         {canManage ? (
@@ -382,7 +392,21 @@ export default function ScreenShow({
                     </dl>
                 </Section>
 
-                <Section title="Current content" testId="screen-content">
+                <Section title="Now Showing" testId="screen-content">
+                    <div className="border-border flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
+                        <p className="text-muted-foreground text-sm">
+                            Resolver-backed view of what this TV should display.
+                        </p>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            data-test="screen-now-showing-preview"
+                            onClick={() => setPreviewOpen(true)}
+                        >
+                            Preview
+                        </Button>
+                    </div>
                     <dl className="divide-border divide-y">
                         <div className="flex items-start justify-between gap-4 px-4 py-3 text-sm">
                             <dt className="text-muted-foreground shrink-0">
@@ -401,26 +425,55 @@ export default function ScreenShow({
                                     data-test="screen-content-source"
                                     data-source={screen.content_source}
                                 >
-                                    {screen.content_source_label}
+                                    {screen.now_showing?.content_type_label ??
+                                        screen.content_source_label}
                                 </Badge>
                             </dd>
                         </div>
                         <DetailRow
-                            label="Design"
+                            label="Content"
                             value={
+                                screen.now_showing?.content_name ??
                                 screen.current_deployment?.design_name ??
                                 screen.current_design_name ??
                                 'None'
                             }
+                            testId="screen-now-showing-name"
                         />
+                        {screen.now_showing?.content_source === 'schedule' &&
+                        screen.now_showing.schedule_name ? (
+                            <DetailRow
+                                label="Schedule"
+                                value={`${screen.now_showing.schedule_name}${
+                                    screen.now_showing.schedule_priority != null
+                                        ? ` · priority ${screen.now_showing.schedule_priority}`
+                                        : ''
+                                }${
+                                    screen.now_showing.window_ends_at_local
+                                        ? ` · until ${screen.now_showing.window_ends_at_local}`
+                                        : ''
+                                }`}
+                                testId="screen-now-showing-schedule"
+                            />
+                        ) : null}
                         <DetailRow
                             label="Version"
                             value={
-                                screen.current_deployment?.version_number !=
-                                null
-                                    ? `v${screen.current_deployment.version_number}`
-                                    : '—'
+                                screen.now_showing?.version_number != null
+                                    ? `v${screen.now_showing.version_number}`
+                                    : screen.current_deployment
+                                            ?.version_number != null
+                                      ? `v${screen.current_deployment.version_number}`
+                                      : '—'
                             }
+                        />
+                        <DetailRow
+                            label="Status"
+                            value={
+                                screen.now_showing?.ack_label ??
+                                screen.content_sync_label
+                            }
+                            testId="screen-now-showing-status"
                         />
                         <DetailRow
                             label="Deployed"
@@ -723,6 +776,12 @@ export default function ScreenShow({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <TvContentPreviewDialog
+                screenId={previewOpen ? screen.id : null}
+                screenName={screen.name}
+                onClose={() => setPreviewOpen(false)}
+            />
         </>
     );
 }

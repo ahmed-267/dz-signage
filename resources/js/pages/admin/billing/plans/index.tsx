@@ -1,6 +1,7 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
 import { AdminPageHeader } from '@/components/admin/admin-page-header';
+import { ADMIN_BILLING_TABS } from '@/components/admin/admin-section-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -63,12 +64,11 @@ export default function AdminBillingPlansIndex({
                 data-test="admin-billing-plans"
             >
                 <AdminPageHeader
-                    title="Plans"
-                    description={
-                        canManage
-                            ? 'Edit commercial plan limits, features, and Stripe Prices. Amount changes create new Prices; existing subscribers stay on old Prices until migrated.'
-                            : 'Read-only plan catalog. Only Super Admins can edit.'
-                    }
+                    title="Billing"
+                    description="Plans, subscriptions and invoices."
+                    badge={null}
+                    tabs={ADMIN_BILLING_TABS}
+                    activeTab="plans"
                 />
 
                 {flash?.success ? (

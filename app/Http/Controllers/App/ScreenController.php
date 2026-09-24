@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\App;
 
+use App\Actions\Deployments\PublishContentToScreens;
 use App\Actions\Deployments\PublishDesignToScreens;
 use App\Actions\Locations\AssignScreenToLocation;
 use App\Actions\Pairing\ClaimPairingSession;
@@ -9,12 +10,14 @@ use App\Actions\Screens\RenameScreen;
 use App\Actions\Screens\RevokeScreenDevice;
 use App\Actions\Screens\SetScreenOperationalStatus;
 use App\Enums\DeploymentStatus;
+use App\Enums\PlaylistStatus;
 use App\Enums\ScreenDesignStatus;
 use App\Enums\ScreenOperationalStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Deployment;
 use App\Models\Location;
 use App\Models\PairingSession;
+use App\Models\Playlist;
 use App\Models\Screen;
 use App\Models\ScreenDesign;
 use App\Models\ScreenDevice;
@@ -25,8 +28,11 @@ use App\Support\Billing\BillingEntitlement;
 use App\Support\ListPagination;
 use App\Support\Locations\LocationAccess;
 use App\Support\Schedules\ScheduleEvaluator;
+use App\Support\Screens\NowShowing;
 use App\Support\Screens\ScreenContentResolver;
 use App\Support\Screens\ScreenPresence;
+use App\Support\Screens\TvContentPreview;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -37,6 +43,8 @@ use Inertia\Response;
 
 class ScreenController extends Controller
 {
+    public function __construct(private readonly NowShowing $nowShowing) {}
+
     public function index(Request $request): Response
     {
         $user = $request->user();
@@ -96,6 +104,13 @@ class ScreenController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'orientation']);
 
+        $publishedPlaylists = Playlist::query()
+            ->forWorkspace($workspace)
+            ->where('status', PlaylistStatus::Published)
+            ->whereNotNull('published_version_id')
+            ->orderBy('name')
+            ->get(['id', 'name', 'orientation']);
+
         $locationOptions = $this->locationOptions($user, $workspace);
 
         return Inertia::render('app/screens/index', [
@@ -120,6 +135,11 @@ class ScreenController extends Controller
                 'id' => $design->id,
                 'name' => $design->name,
                 'orientation' => $design->orientation->value,
+            ])->values(),
+            'published_playlists' => $publishedPlaylists->map(fn (Playlist $playlist) => [
+                'id' => $playlist->id,
+                'name' => $playlist->name,
+                'orientation' => $playlist->orientation->value,
             ])->values(),
             'locations' => $locationOptions,
             'require_location' => LocationAccess::isLocationManager($user, $workspace),
@@ -168,6 +188,13 @@ class ScreenController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'orientation']);
 
+        $publishedPlaylists = Playlist::query()
+            ->forWorkspace($workspace)
+            ->where('status', PlaylistStatus::Published)
+            ->whereNotNull('published_version_id')
+            ->orderBy('name')
+            ->get(['id', 'name', 'orientation']);
+
         $recentHeartbeats = ScreenHeartbeat::query()
             ->where('screen_id', $screen->id)
             ->orderByDesc('recorded_at')
@@ -193,6 +220,11 @@ class ScreenController extends Controller
                 'id' => $design->id,
                 'name' => $design->name,
                 'orientation' => $design->orientation->value,
+            ])->values(),
+            'published_playlists' => $publishedPlaylists->map(fn (Playlist $playlist) => [
+                'id' => $playlist->id,
+                'name' => $playlist->name,
+                'orientation' => $playlist->orientation->value,
             ])->values(),
             'locations' => $this->locationOptions($request->user(), $workspace),
             'can_manage' => $request->user()->can('update', $screen),
@@ -435,7 +467,7 @@ class ScreenController extends Controller
     public function publishContent(
         Request $request,
         Screen $screen,
-        PublishDesignToScreens $action,
+        PublishContentToScreens $action,
     ): RedirectResponse {
         $this->ensureWorkspace($request, $screen);
         $this->authorize('publish', $screen);
@@ -444,19 +476,78 @@ class ScreenController extends Controller
         abort_unless($workspace !== null, 403);
 
         $data = $request->validate([
-            'screen_design_id' => ['required', 'integer'],
+            'content_kind' => ['nullable', 'string', Rule::in(['screen_design', 'playlist'])],
+            'screen_design_id' => ['nullable', 'integer', 'required_without:playlist_id'],
+            'playlist_id' => ['nullable', 'integer', 'required_without:screen_design_id'],
         ]);
+
+        $this->authorize('create', Deployment::class);
+
+        $kind = $data['content_kind']
+            ?? (isset($data['playlist_id']) ? 'playlist' : 'screen_design');
+
+        if ($kind === 'playlist') {
+            $playlist = Playlist::query()
+                ->forWorkspace($workspace)
+                ->whereKey($data['playlist_id'])
+                ->firstOrFail();
+
+            $result = $action->publishPlaylist(
+                $request->user(),
+                $workspace,
+                $playlist,
+                [$screen->id],
+            );
+
+            return redirect()
+                ->back()
+                ->with('success', 'Playlist published to TV.')
+                ->with('publish_result', [
+                    'content_name' => $playlist->name,
+                    'content_kind' => 'playlist',
+                    'screen_ids' => [$screen->id],
+                    'screen_names' => [$screen->name],
+                ])
+                ->with('publish_warnings', $result['warnings']);
+        }
 
         $design = ScreenDesign::query()
             ->forWorkspace($workspace)
             ->whereKey($data['screen_design_id'])
             ->firstOrFail();
 
-        $this->authorize('create', Deployment::class);
+        $result = $action->publishDesign(
+            $request->user(),
+            $workspace,
+            $design,
+            [$screen->id],
+        );
 
-        $action->handle($request->user(), $workspace, $design, [$screen->id]);
+        return redirect()
+            ->back()
+            ->with('success', 'Screen published to TV.')
+            ->with('publish_result', [
+                'content_name' => $design->name,
+                'content_kind' => 'screen_design',
+                'screen_ids' => [$screen->id],
+                'screen_names' => [$screen->name],
+            ])
+            ->with('publish_warnings', $result['warnings']);
+    }
 
-        return redirect()->back()->with('success', 'Design published to screen.');
+    /**
+     * Read-only preview of the content this TV should currently display.
+     * Uses ScreenContentResolver — does not publish or mutate deployments.
+     */
+    public function nowShowingPreview(
+        Request $request,
+        Screen $screen,
+        TvContentPreview $preview,
+    ): JsonResponse {
+        $this->ensureWorkspace($request, $screen);
+        $this->authorize('view', $screen);
+
+        return response()->json($preview->forScreen($screen));
     }
 
     /**
@@ -610,6 +701,7 @@ class ScreenController extends Controller
             : $screen->activeDeployment();
 
         $state = ScreenPresence::snapshot($screen, $device, $deployment);
+        $nowShowing = $this->nowShowing->forScreen($screen, $device, $deployment);
 
         return [
             'id' => $screen->id,
@@ -628,14 +720,13 @@ class ScreenController extends Controller
             'content_sync' => $state['content_sync'],
             'content_sync_label' => $state['content_sync_label'],
             'orientation_mismatch' => $state['orientation_mismatch'],
-            'content_type' => $deployment?->content_type->value,
-            'content_name' => $deployment?->contentName(),
+            'content_type' => $nowShowing['content_type'] ?? $deployment?->content_type->value,
+            'content_name' => $nowShowing['content_name'] ?? $deployment?->contentName(),
             'content_orientation' => $deployment?->contentOrientation(),
-            // Legacy keys: kept so design-only surfaces stay unchanged, but they
-            // resolve playlist deployments too rather than reporting nothing.
-            'current_design_name' => $deployment?->contentName(),
+            // Legacy keys: deployment fallback for older UI; prefer now_showing.
+            'current_design_name' => $nowShowing['content_name'] ?? $deployment?->contentName(),
             'current_design_orientation' => $deployment?->contentOrientation(),
-            'current_version_number' => $deployment?->contentVersionNumber(),
+            'current_version_number' => $nowShowing['version_number'] ?? $deployment?->contentVersionNumber(),
             'deployed_at' => $deployment?->deployed_at?->toIso8601String(),
             'paired_at' => $device?->paired_at?->toIso8601String(),
             'last_seen_at' => $device?->last_seen_at?->toIso8601String(),
@@ -646,6 +737,9 @@ class ScreenController extends Controller
             'playback_state' => $device?->playback_state,
             'updated_at' => $screen->updated_at?->toIso8601String(),
             'created_at' => $screen->created_at?->toIso8601String(),
+            'now_showing' => $nowShowing,
+            'content_source' => $nowShowing['content_source'],
+            'content_source_label' => $nowShowing['content_source_label'],
         ];
     }
 

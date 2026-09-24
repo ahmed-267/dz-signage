@@ -2,8 +2,10 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\WorkspaceRole;
 use App\Models\BrandKit;
 use App\Support\Ai\AiAvailability;
+use App\Support\Onboarding\ProductOnboarding;
 use App\Support\ProductBrand;
 use App\Support\WorkspacePermissions;
 use Illuminate\Http\Request;
@@ -88,7 +90,25 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
+                'publish_result' => fn () => $request->session()->get('publish_result'),
             ],
+            'productOnboarding' => function () use ($user, $request, $workspaceContext) {
+                if (! $user || $request->is('admin', 'admin/*', 'player', 'player/*', 'onboarding', 'onboarding/*')) {
+                    return null;
+                }
+
+                $workspace = $user->currentWorkspace;
+                if (! $workspace || ! $user->belongsToWorkspace($workspace)) {
+                    return null;
+                }
+
+                $roleValue = $workspaceContext['role'] ?? null;
+                $role = is_string($roleValue)
+                    ? WorkspaceRole::tryFrom($roleValue)
+                    : null;
+
+                return app(ProductOnboarding::class)->sharedPayload($user, $workspace, $role);
+            },
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             // Public AI capability status only — never provider secrets/models keys.
             'ai' => function () use ($user, $request) {

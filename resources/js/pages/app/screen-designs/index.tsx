@@ -375,6 +375,7 @@ export default function ScreenDesignsIndex({
                         <Button
                             type="button"
                             data-test="screen-designs-create"
+                            data-tour="create-screen"
                             onClick={() => setCreateOpen(true)}
                         >
                             <Plus className="size-4" />

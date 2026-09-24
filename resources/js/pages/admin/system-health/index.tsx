@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { AdminPageHeader } from '@/components/admin/admin-page-header';
+import { ADMIN_OPERATIONS_TABS } from '@/components/admin/admin-section-header';
 import { StatusBadge } from '@/components/admin/status-badge';
 import {
     Card,
@@ -59,21 +60,11 @@ export default function AdminSystemHealth({
                 data-test="admin-system-health"
             >
                 <AdminPageHeader
-                    title="System Health"
-                    description="Platform dependency checks. Status is shown with text and icon, not colour alone."
-                    actions={
-                        overall_status_label || overall_status ? (
-                            <StatusBadge
-                                label={
-                                    overall_status_label ??
-                                    overall_status ??
-                                    'Unknown'
-                                }
-                                tone={overall_status}
-                                data-test="admin-system-health-overall"
-                            />
-                        ) : undefined
-                    }
+                    title="Operations"
+                    description="Monitor TVs, deployments and platform health."
+                    badge={null}
+                    tabs={ADMIN_OPERATIONS_TABS}
+                    activeTab="system-health"
                 />
 
                 <Card className="shadow-none">

@@ -31,6 +31,10 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string|null $two_factor_secret
  * @property string|null $two_factor_recovery_codes
  * @property Carbon|null $two_factor_confirmed_at
+ * @property Carbon|null $onboarding_started_at
+ * @property Carbon|null $onboarding_completed_at
+ * @property Carbon|null $onboarding_skipped_at
+ * @property int|null $onboarding_step
  * @property string|null $remember_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -174,6 +178,9 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             'two_factor_confirmed_at' => 'datetime',
             'is_admin' => 'boolean',
             'platform_role' => PlatformRole::class,
+            'onboarding_started_at' => 'datetime',
+            'onboarding_completed_at' => 'datetime',
+            'onboarding_skipped_at' => 'datetime',
         ];
     }
 }

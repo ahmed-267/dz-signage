@@ -20,6 +20,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { OnboardingChecklistCard } from '@/components/onboarding/product-onboarding';
 import {
     Table,
     TableBody,
@@ -257,6 +258,8 @@ export default function AppDashboard({
                         </div>
                     ) : null}
                 </div>
+
+                <OnboardingChecklistCard />
 
                 {empty || !metrics ? (
                     <EmptyState

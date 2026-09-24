@@ -102,4 +102,43 @@ Route::middleware(['auth', 'verified', 'admin'])
         Route::redirect('media', '/admin/templates');
         Route::redirect('scheduling-jobs', '/admin/publishing-jobs');
         Route::redirect('announcements', '/admin/support');
+
+        // Grouped Super Admin section hubs (URL tabs → existing pages)
+        Route::redirect('customers', '/admin/workspaces');
+        Route::get('customers/{tab}', function (string $tab) {
+            return redirect(match ($tab) {
+                'users' => '/admin/users',
+                'tvs', 'screens' => '/admin/screens',
+                default => '/admin/workspaces',
+            });
+        })->where('tab', 'businesses|users|tvs|screens');
+
+        Route::redirect('billing', '/admin/subscriptions');
+        Route::get('billing/{tab}', function (string $tab) {
+            return redirect(match ($tab) {
+                'plans' => '/admin/subscriptions/plans',
+                'invoices' => '/admin/invoices',
+                default => '/admin/subscriptions',
+            });
+        })->where('tab', 'plans|subscriptions|invoices');
+
+        Route::redirect('content', '/admin/templates');
+
+        Route::redirect('operations', '/admin/screen-health');
+        Route::get('operations/{tab}', function (string $tab) {
+            return redirect(match ($tab) {
+                'publishing', 'publishing-jobs' => '/admin/publishing-jobs',
+                'system-health' => '/admin/system-health',
+                'errors' => '/admin/errors',
+                default => '/admin/screen-health',
+            });
+        })->where('tab', 'tv-health|publishing|publishing-jobs|system-health|errors');
+
+        Route::get('settings/{tab}', function (string $tab) {
+            return redirect(match ($tab) {
+                'feature-flags', 'flags' => '/admin/feature-flags',
+                'audit-log', 'audit' => '/admin/audit-log',
+                default => '/admin/settings',
+            });
+        })->where('tab', 'platform|feature-flags|flags|audit-log|audit');
     });

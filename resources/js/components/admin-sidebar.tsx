@@ -1,19 +1,11 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
-    Activity,
-    AlertTriangle,
     ChevronLeft,
     CreditCard,
-    FileText,
-    Flag,
-    HardDrive,
     HeartPulse,
     LayoutDashboard,
     LayoutTemplate,
     MessageCircle,
-    Monitor,
-    Package,
-    Receipt,
     Settings,
     Shield,
     Users,
@@ -31,145 +23,22 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { ProductBrand } from '@/lib/product-brand';
-import { ProductLabels } from '@/lib/product-labels';
 import { dashboard as appDashboard } from '@/routes/app';
 import {
-    audit_log,
     dashboard,
-    errors,
-    feature_flags,
-    invoices,
-    publishing_jobs,
     screen_health,
-    screens,
     settings,
     subscriptions,
     support,
-    system_health,
     templates,
-    users,
     workspaces,
 } from '@/routes/admin';
-import { plans as billingPlans } from '@/routes/admin/subscriptions';
 import type { NavGroup } from '@/types';
 
-const navGroups: NavGroup[] = [
-    {
-        items: [
-            {
-                title: 'Overview',
-                href: dashboard(),
-                icon: LayoutDashboard,
-            },
-        ],
-    },
-    {
-        title: 'Customers',
-        items: [
-            {
-                title: 'Businesses',
-                href: workspaces(),
-                icon: Users,
-            },
-            {
-                title: 'Users',
-                href: users(),
-                icon: Users,
-            },
-            {
-                title: ProductLabels.displayPlural,
-                href: screens(),
-                icon: Monitor,
-            },
-        ],
-    },
-    {
-        title: 'Billing',
-        items: [
-            {
-                title: 'Subscriptions',
-                href: subscriptions(),
-                icon: CreditCard,
-            },
-            {
-                title: 'Plans',
-                href: billingPlans(),
-                icon: Package,
-            },
-            {
-                title: 'Invoices',
-                href: invoices(),
-                icon: Receipt,
-            },
-        ],
-    },
-    {
-        title: 'Content',
-        items: [
-            {
-                title: 'Templates',
-                href: templates(),
-                icon: LayoutTemplate,
-            },
-        ],
-    },
-    {
-        title: 'Operations',
-        items: [
-            {
-                title: ProductLabels.health,
-                href: screen_health(),
-                icon: Activity,
-            },
-            {
-                title: 'Publishing Jobs',
-                href: publishing_jobs(),
-                icon: HardDrive,
-            },
-            {
-                title: 'System Health',
-                href: system_health(),
-                icon: HeartPulse,
-            },
-            {
-                title: 'Errors',
-                href: errors(),
-                icon: AlertTriangle,
-            },
-        ],
-    },
-    {
-        title: 'Support',
-        items: [
-            {
-                title: 'Support Requests',
-                href: support(),
-                icon: MessageCircle,
-            },
-            {
-                title: 'Audit Log',
-                href: audit_log(),
-                icon: FileText,
-            },
-        ],
-    },
-    {
-        title: 'Platform',
-        items: [
-            {
-                title: 'Feature Flags',
-                href: feature_flags(),
-                icon: Flag,
-            },
-            {
-                title: 'Settings',
-                href: settings(),
-                icon: Settings,
-            },
-        ],
-    },
-];
-
+/**
+ * Super Admin / Platform Admin sidebar — high-level sections only.
+ * Individual pages live as tabs inside each section.
+ */
 export function AdminSidebar() {
     const { auth } = usePage().props;
     const platformRole =
@@ -184,27 +53,72 @@ export function AdminSidebar() {
               ? 'Super Admin'
               : 'Platform';
 
-    const groups = navGroups
-        .map((group) => {
-            if (group.title !== 'Platform') {
-                return group;
-            }
-
-            // Feature Flags + Settings are Super Admin–only (backend still enforces).
-            if (isSuperAdmin) {
-                return group;
-            }
-
-            return {
-                ...group,
-                items: group.items.filter(
-                    (item) =>
-                        item.title !== 'Feature Flags' &&
-                        item.title !== 'Settings',
-                ),
-            };
-        })
-        .filter((group) => (group.items?.length ?? 0) > 0);
+    const navGroups: NavGroup[] = [
+        {
+            items: [
+                {
+                    title: 'Overview',
+                    href: dashboard(),
+                    icon: LayoutDashboard,
+                    activeWhen: ['/admin/dashboard'],
+                    // `/admin` exact is handled via href match on home route
+                },
+                {
+                    title: 'Customers',
+                    href: workspaces(),
+                    icon: Users,
+                    activeWhen: [
+                        '/admin/workspaces',
+                        '/admin/users',
+                        '/admin/screens',
+                    ],
+                },
+                {
+                    title: 'Billing',
+                    href: subscriptions(),
+                    icon: CreditCard,
+                    activeWhen: ['/admin/subscriptions', '/admin/invoices'],
+                },
+                {
+                    title: 'Content',
+                    href: templates(),
+                    icon: LayoutTemplate,
+                    activeWhen: ['/admin/templates'],
+                },
+                {
+                    title: 'Operations',
+                    href: screen_health(),
+                    icon: HeartPulse,
+                    activeWhen: [
+                        '/admin/screen-health',
+                        '/admin/publishing-jobs',
+                        '/admin/system-health',
+                        '/admin/errors',
+                    ],
+                },
+                {
+                    title: 'Support',
+                    href: support(),
+                    icon: MessageCircle,
+                    activeWhen: ['/admin/support'],
+                },
+                ...(isSuperAdmin
+                    ? [
+                          {
+                              title: 'Settings',
+                              href: settings(),
+                              icon: Settings,
+                              activeWhen: [
+                                  '/admin/settings',
+                                  '/admin/feature-flags',
+                                  '/admin/audit-log',
+                              ],
+                          },
+                      ]
+                    : []),
+            ],
+        },
+    ];
 
     return (
         <Sidebar collapsible="icon" variant="inset" data-test="admin-sidebar">
@@ -232,7 +146,7 @@ export function AdminSidebar() {
             </SidebarHeader>
 
             <SidebarContent className="gap-2 overflow-y-auto">
-                <NavMain groups={groups} />
+                <NavMain groups={navGroups} />
             </SidebarContent>
 
             <SidebarFooter className="gap-2">

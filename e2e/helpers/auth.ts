@@ -14,6 +14,20 @@ function markEmailVerified(email: string): void {
     );
 }
 
+/** Skip the product tour so E2E flows are not blocked by coach marks. */
+function skipProductTour(email: string): void {
+    execFileSync(
+        'php',
+        [
+            'artisan',
+            'tinker',
+            '--execute',
+            `\\App\\Models\\User::where('email', ${JSON.stringify(email)})->update(['onboarding_skipped_at' => now(), 'onboarding_started_at' => now()]);`,
+        ],
+        { cwd: process.cwd(), stdio: 'pipe' },
+    );
+}
+
 export async function completeOnboarding(
     page: Page,
     workspaceName = 'E2E Workspace',
@@ -57,6 +71,8 @@ export async function registerCustomer(page: Page): Promise<{
     }
 
     await completeOnboarding(page, workspaceName);
+    skipProductTour(email);
+    await page.goto('/app/dashboard');
 
     return { email, password, workspaceName };
 }

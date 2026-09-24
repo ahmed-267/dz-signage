@@ -11,6 +11,10 @@ export type NavItem = {
     href: NonNullable<InertiaLinkProps['href']>;
     icon?: LucideIcon | null;
     isActive?: boolean;
+    /** When set, item is active if the current path matches any prefix. */
+    activeWhen?: string[];
+    /** Optional product-tour / test hook. */
+    dataTour?: string;
 };
 
 export type NavGroup = {

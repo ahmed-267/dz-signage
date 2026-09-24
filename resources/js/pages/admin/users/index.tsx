@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AdminPageHeader } from '@/components/admin/admin-page-header';
+import { ADMIN_CUSTOMERS_TABS } from '@/components/admin/admin-section-header';
 import { Badge } from '@/components/ui/badge';
 import {
     Card,
@@ -154,8 +155,11 @@ export default function AdminUsersIndex({
                 data-test="admin-users"
             >
                 <AdminPageHeader
-                    title="Users"
-                    description="Platform accounts across all businesses."
+                    title="Customers"
+                    description="Businesses, users and paired TVs across the platform."
+                    badge={null}
+                    tabs={ADMIN_CUSTOMERS_TABS}
+                    activeTab="users"
                 />
 
                 <div className="flex flex-col gap-3 lg:flex-row">

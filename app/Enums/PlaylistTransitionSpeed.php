@@ -20,9 +20,9 @@ enum PlaylistTransitionSpeed: string
     public function milliseconds(): int
     {
         return match ($this) {
-            self::Fast => 250,
-            self::Normal => 500,
-            self::Slow => 900,
+            self::Fast => 400,
+            self::Normal => 700,
+            self::Slow => 1000,
         };
     }
 

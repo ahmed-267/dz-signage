@@ -1,8 +1,12 @@
 import { Pause, Play, RotateCcw, SkipBack, SkipForward } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-    playlistTransitionStyle,
+    playlistIdleLayerStyle,
+    playlistLayerStartStyle,
+    resolvePlaylistTransition,
+    runPlaylistLayerAnimations,
     transitionSpeedMs,
+    type TransitionLifecycle,
 } from '@/components/playlists/transitions';
 import {
     LayoutRenderer,
@@ -45,6 +49,11 @@ type PlaylistPreviewPlayerProps = {
     runtime?: WidgetRuntimeMode;
     widgetData?: Record<string, unknown>;
     isOnline?: boolean;
+    /**
+     * `player` keeps configured transitions even under prefers-reduced-motion.
+     * `preview` (default) softens slides to fade when reduced motion is set.
+     */
+    surface?: 'preview' | 'player';
 };
 
 const MIN_ITEM_SECONDS = 1;
@@ -63,13 +72,41 @@ function normalizeLoopCount(value: number | undefined): number {
     return Math.max(1, Math.round(value));
 }
 
+function usePrefersReducedMotion(): boolean {
+    const [reduced, setReduced] = useState(false);
+
+    useEffect(() => {
+        if (typeof window === 'undefined' || !window.matchMedia) {
+            return;
+        }
+        const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const sync = () => setReduced(mq.matches);
+        sync();
+        mq.addEventListener('change', sync);
+        return () => mq.removeEventListener('change', sync);
+    }, []);
+
+    return reduced;
+}
+
+type TransitionState = {
+    lifecycle: TransitionLifecycle;
+    /** Index that remains committed until animation finishes. */
+    currentIndex: number;
+    /** Index of the Screen entering during PREPARING/ANIMATING. */
+    incomingIndex: number | null;
+};
+
 /**
- * Sequential Screen Design playback shared by the playlist editor, the
- * playlist preview page, and the Player. Inactive items are skipped. Each
- * item plays for `duration_seconds`, repeated `loop_count` times, then the
- * player advances. Transitions are visual only and do not affect runtime.
- * The canvas stays dark and theme independent — app chrome must never
- * recolor rendered signage.
+ * Sequential Screen Design playback shared by Playlist Preview and `/player`.
+ *
+ * Transition lifecycle (double-buffer — outgoing is NEVER unmounted early):
+ *   IDLE → PREPARING (mount A+B at start poses)
+ *        → ANIMATING (Web Animations API drives both layers simultaneously)
+ *        → COMMIT (B becomes current, unmount A) → IDLE
+ *
+ * Item `duration_seconds` starts when a Screen is committed (IDLE).
+ * Transition duration is visual only.
  */
 export function PlaylistPreviewPlayer({
     items,
@@ -83,46 +120,72 @@ export function PlaylistPreviewPlayer({
     runtime,
     widgetData,
     isOnline = true,
+    surface = 'preview',
 }: PlaylistPreviewPlayerProps) {
     const activeItems = useMemo(
         () => items.filter((item) => item.is_active),
         [items],
     );
+    const prefersReducedMotion = usePrefersReducedMotion();
 
-    const [index, setIndex] = useState(0);
-    /** 1-based play count within the current item (1..loop_count). */
     const [playPass, setPlayPass] = useState(1);
     const [playing, setPlaying] = useState(autoPlay);
-    const [outgoing, setOutgoing] = useState<PlaylistPlayerItem | null>(null);
-    const [entered, setEntered] = useState(true);
     const [fit, setFit] = useState({ width: 640, height: 360 });
+    const [transition, setTransition] = useState<TransitionState>({
+        lifecycle: 'idle',
+        currentIndex: 0,
+        incomingIndex: null,
+    });
 
     const stageRef = useRef<HTMLDivElement>(null);
+    const outgoingRef = useRef<HTMLDivElement>(null);
+    const incomingRef = useRef<HTMLDivElement>(null);
     const advanceTimerRef = useRef<number | null>(null);
-    const transitionTimerRef = useRef<number | null>(null);
-    const currentItemRef = useRef<PlaylistPlayerItem | null>(null);
+    const pendingIndexRef = useRef<number | null>(null);
+    const lifecycleRef = useRef<TransitionLifecycle>('idle');
+    const animTokenRef = useRef(0);
 
     const total = activeItems.length;
-    const safeIndex = total > 0 ? Math.min(index, total - 1) : 0;
-    const current = total > 0 ? activeItems[safeIndex] : null;
+    const safeCurrent =
+        total > 0 ? Math.min(transition.currentIndex, total - 1) : 0;
+    const current = total > 0 ? activeItems[safeCurrent] : null;
+    const incoming =
+        transition.incomingIndex !== null && total > 0
+            ? activeItems[Math.min(transition.incomingIndex, total - 1)]
+            : null;
+    const nextWarm = total > 1 ? activeItems[(safeCurrent + 1) % total] : null;
     const currentLoops = normalizeLoopCount(current?.loop_count);
     const safePlayPass =
         current === null ? 1 : Math.min(Math.max(1, playPass), currentLoops);
 
     useEffect(() => {
-        currentItemRef.current = current;
-    }, [current]);
+        lifecycleRef.current = transition.lifecycle;
+    }, [transition.lifecycle]);
 
-    // A shorter playlist (item removed / deactivated) must not leave a
-    // dangling index.
     useEffect(() => {
-        setIndex((prev) => (total === 0 ? 0 : Math.min(prev, total - 1)));
+        setTransition((prev) => {
+            if (total === 0) {
+                return {
+                    lifecycle: 'idle',
+                    currentIndex: 0,
+                    incomingIndex: null,
+                };
+            }
+            const clamped = Math.min(prev.currentIndex, total - 1);
+            if (clamped === prev.currentIndex) {
+                return prev;
+            }
+            return {
+                lifecycle: 'idle',
+                currentIndex: clamped,
+                incomingIndex: null,
+            };
+        });
     }, [total]);
 
-    // Reset the per-item play pass when the current item changes.
     useEffect(() => {
         setPlayPass(1);
-    }, [current?.key, safeIndex]);
+    }, [current?.key, safeCurrent]);
 
     useEffect(() => {
         const stage = stageRef.current;
@@ -144,18 +207,181 @@ export function PlaylistPreviewPlayer({
         return () => observer.disconnect();
     }, []);
 
-    const goTo = useCallback((next: number) => {
-        setOutgoing(currentItemRef.current);
-        setEntered(false);
-        setPlayPass(1);
-        setIndex(next);
+    const commitIncoming = useCallback(() => {
+        setTransition((prev) => {
+            if (prev.incomingIndex === null) {
+                return { ...prev, lifecycle: 'idle', incomingIndex: null };
+            }
+            return {
+                lifecycle: 'idle',
+                currentIndex: prev.incomingIndex,
+                incomingIndex: null,
+            };
+        });
+        pendingIndexRef.current = null;
     }, []);
+
+    const beginTransition = useCallback(
+        (nextIndex: number) => {
+            if (total === 0) {
+                return;
+            }
+            const target = Math.max(0, Math.min(nextIndex, total - 1));
+
+            if (lifecycleRef.current !== 'idle') {
+                pendingIndexRef.current = target;
+                return;
+            }
+
+            if (target === safeCurrent) {
+                return;
+            }
+
+            if (!activeItems[target]) {
+                return;
+            }
+
+            setTransition({
+                lifecycle: 'preparing',
+                currentIndex: safeCurrent,
+                incomingIndex: target,
+            });
+        },
+        [activeItems, safeCurrent, total],
+    );
+
+    const prefersReducedMotionRef = useRef(prefersReducedMotion);
+    const surfaceRef = useRef(surface);
+    const activeItemsRef = useRef(activeItems);
+    prefersReducedMotionRef.current = prefersReducedMotion;
+    surfaceRef.current = surface;
+    activeItemsRef.current = activeItems;
+
+    /**
+     * Stable run key for the whole PREPARING→ANIMATING window.
+     * Must NOT change when we flip preparing→animating, or the effect cleanup
+     * would cancel WAAPI mid-flight (opacity stuck at start poses forever).
+     */
+    const transitionRunKey =
+        transition.incomingIndex !== null &&
+        (transition.lifecycle === 'preparing' ||
+            transition.lifecycle === 'animating')
+            ? `${transition.currentIndex}->${transition.incomingIndex}`
+            : null;
+
+    // PREPARING → run WAAPI → COMMIT. Outgoing stays mounted the whole time.
+    useEffect(() => {
+        if (transitionRunKey === null) {
+            return;
+        }
+
+        const parts = transitionRunKey.split('->');
+        const incomingIndex = Number(parts[1]);
+        const items = activeItemsRef.current;
+        const incomingItem = items[incomingIndex];
+        if (!incomingItem) {
+            commitIncoming();
+            return;
+        }
+
+        const token = ++animTokenRef.current;
+        let cancelled = false;
+
+        const run = async () => {
+            // Wait one frame so both layers are in the DOM at start poses.
+            await new Promise<void>((resolve) => {
+                window.requestAnimationFrame(() => resolve());
+            });
+            if (cancelled || token !== animTokenRef.current) {
+                return;
+            }
+
+            const resolved = resolvePlaylistTransition(
+                incomingItem.transition ?? 'none',
+                {
+                    preferReducedMotion: prefersReducedMotionRef.current,
+                    surface: surfaceRef.current,
+                },
+            );
+            const speed = incomingItem.transition_speed ?? 'normal';
+
+            setTransition((prev) =>
+                prev.lifecycle === 'preparing'
+                    ? { ...prev, lifecycle: 'animating' }
+                    : prev,
+            );
+
+            // Another frame after marking ANIMATING so refs stay mounted.
+            await new Promise<void>((resolve) => {
+                window.requestAnimationFrame(() => resolve());
+            });
+            if (cancelled || token !== animTokenRef.current) {
+                return;
+            }
+
+            try {
+                await runPlaylistLayerAnimations({
+                    outgoing: outgoingRef.current,
+                    incoming: incomingRef.current,
+                    transition: resolved,
+                    speed,
+                });
+            } catch {
+                // Cancelled WAAPI rejects finished — treat as aborted.
+                return;
+            }
+
+            if (cancelled || token !== animTokenRef.current) {
+                return;
+            }
+
+            commitIncoming();
+
+            const queued = pendingIndexRef.current;
+            pendingIndexRef.current = null;
+            if (queued !== null) {
+                window.requestAnimationFrame(() => {
+                    setTransition((prev) => {
+                        if (prev.lifecycle !== 'idle') {
+                            pendingIndexRef.current = queued;
+                            return prev;
+                        }
+                        if (queued === prev.currentIndex) {
+                            return prev;
+                        }
+                        return {
+                            lifecycle: 'preparing',
+                            currentIndex: prev.currentIndex,
+                            incomingIndex: queued,
+                        };
+                    });
+                });
+            }
+        };
+
+        void run();
+
+        return () => {
+            cancelled = true;
+            animTokenRef.current += 1;
+            outgoingRef.current?.getAnimations().forEach((a) => a.cancel());
+            incomingRef.current?.getAnimations().forEach((a) => a.cancel());
+        };
+    }, [transitionRunKey, commitIncoming]);
+
+    const goTo = useCallback(
+        (next: number) => {
+            setPlayPass(1);
+            beginTransition(next);
+        },
+        [beginTransition],
+    );
 
     const goNext = useCallback(() => {
         if (total === 0) {
             return;
         }
-        const next = safeIndex + 1;
+        const next = safeCurrent + 1;
         if (next >= total) {
             if (loop) {
                 goTo(0);
@@ -163,13 +389,13 @@ export function PlaylistPreviewPlayer({
             return;
         }
         goTo(next);
-    }, [goTo, loop, safeIndex, total]);
+    }, [goTo, loop, safeCurrent, total]);
 
     const goPrevious = useCallback(() => {
         if (total === 0) {
             return;
         }
-        const previous = safeIndex - 1;
+        const previous = safeCurrent - 1;
         if (previous < 0) {
             if (loop) {
                 goTo(total - 1);
@@ -177,22 +403,26 @@ export function PlaylistPreviewPlayer({
             return;
         }
         goTo(previous);
-    }, [goTo, loop, safeIndex, total]);
+    }, [goTo, loop, safeCurrent, total]);
 
     const restart = useCallback(() => {
         goTo(0);
         setPlaying(true);
     }, [goTo]);
 
-    // Advance timer — one timer at a time. After each duration_seconds pass,
-    // either repeat the same item (loop_count) or advance to the next item.
+    // Advance timer runs only while IDLE on a committed Screen.
     useEffect(() => {
         if (advanceTimerRef.current !== null) {
             window.clearTimeout(advanceTimerRef.current);
             advanceTimerRef.current = null;
         }
 
-        if (!playing || current === null || total === 0) {
+        if (
+            !playing ||
+            current === null ||
+            total === 0 ||
+            transition.lifecycle !== 'idle'
+        ) {
             return;
         }
 
@@ -214,52 +444,46 @@ export function PlaylistPreviewPlayer({
                 advanceTimerRef.current = null;
             }
         };
-    }, [current, currentLoops, goNext, loop, playing, safePlayPass, total]);
+    }, [
+        current,
+        currentLoops,
+        goNext,
+        loop,
+        playing,
+        safePlayPass,
+        total,
+        transition.lifecycle,
+    ]);
 
-    // Run the incoming animation, then drop the outgoing layer.
-    useEffect(() => {
-        if (transitionTimerRef.current !== null) {
-            window.clearTimeout(transitionTimerRef.current);
-            transitionTimerRef.current = null;
-        }
-
-        if (current === null) {
-            return;
-        }
-
-        const frame = window.requestAnimationFrame(() => setEntered(true));
-        transitionTimerRef.current = window.setTimeout(
-            () => setOutgoing(null),
-            transitionSpeedMs(current.transition_speed) + 60,
-        );
-
-        return () => {
-            window.cancelAnimationFrame(frame);
-            if (transitionTimerRef.current !== null) {
-                window.clearTimeout(transitionTimerRef.current);
-                transitionTimerRef.current = null;
-            }
-        };
-    }, [current, safeIndex]);
-
-    const transition = current?.transition ?? 'none';
-    const speed = current?.transition_speed ?? 'normal';
+    const activeTransition = resolvePlaylistTransition(
+        (incoming ?? current)?.transition ?? 'none',
+        { preferReducedMotion: prefersReducedMotion, surface },
+    );
+    const isTransitioning =
+        transition.lifecycle === 'preparing' ||
+        transition.lifecycle === 'animating';
 
     return (
         <div
             className={cn('flex min-h-0 w-full flex-col gap-3', className)}
             data-test="playlist-player"
             data-playlist-count={total}
+            data-transition={activeTransition}
+            data-transition-lifecycle={transition.lifecycle}
+            data-transition-ms={transitionSpeedMs(
+                (incoming ?? current)?.transition_speed ?? 'normal',
+            )}
         >
             <div
                 ref={stageRef}
                 data-test="playlist-player-stage"
-                data-current-index={total === 0 ? '' : safeIndex + 1}
+                data-current-index={total === 0 ? '' : safeCurrent + 1}
                 data-current-name={current?.name ?? ''}
                 className={cn(
                     'relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-lg bg-[#060810]',
                     stageClassName,
                 )}
+                style={{ position: 'relative', overflow: 'hidden' }}
             >
                 {current === null ? (
                     <p className="px-6 text-center text-sm text-[#94a3b8]">
@@ -267,18 +491,21 @@ export function PlaylistPreviewPlayer({
                     </p>
                 ) : (
                     <>
-                        {outgoing && outgoing.key !== current.key ? (
+                        {!isTransitioning &&
+                        nextWarm &&
+                        nextWarm.key !== current.key ? (
                             <div
                                 className="pointer-events-none absolute inset-0 flex items-center justify-center"
-                                style={playlistTransitionStyle(
-                                    transition,
-                                    speed,
-                                    entered ? 'leave' : 'settled',
-                                )}
+                                style={{
+                                    opacity: 0,
+                                    visibility: 'hidden',
+                                    zIndex: 0,
+                                }}
                                 aria-hidden
+                                data-test="playlist-player-preload"
                             >
                                 <LayoutRenderer
-                                    schema={outgoing.schema}
+                                    schema={nextWarm.schema}
                                     mode="preview"
                                     runtime={runtime}
                                     fitWidth={fit.width}
@@ -286,16 +513,23 @@ export function PlaylistPreviewPlayer({
                                     mediaMap={mediaMap}
                                     widgetData={widgetData}
                                     isOnline={isOnline}
+                                    mediaActive={false}
                                 />
                             </div>
                         ) : null}
+
                         <div
-                            className="pointer-events-none absolute inset-0 flex items-center justify-center"
-                            style={playlistTransitionStyle(
-                                transition,
-                                speed,
-                                entered ? 'settled' : 'enter',
-                            )}
+                            ref={outgoingRef}
+                            style={
+                                isTransitioning && incoming
+                                    ? playlistLayerStartStyle(
+                                          activeTransition,
+                                          'outgoing',
+                                      )
+                                    : playlistIdleLayerStyle()
+                            }
+                            data-test="playlist-player-outgoing"
+                            data-transition-layer="outgoing"
                         >
                             <LayoutRenderer
                                 schema={current.schema}
@@ -306,26 +540,61 @@ export function PlaylistPreviewPlayer({
                                 mediaMap={mediaMap}
                                 widgetData={widgetData}
                                 isOnline={isOnline}
+                                mediaActive={!isTransitioning}
                             />
                         </div>
+
+                        {isTransitioning && incoming ? (
+                            <div
+                                ref={incomingRef}
+                                style={playlistLayerStartStyle(
+                                    activeTransition,
+                                    'incoming',
+                                )}
+                                data-test="playlist-player-incoming"
+                                data-transition-layer="incoming"
+                            >
+                                <LayoutRenderer
+                                    schema={incoming.schema}
+                                    mode="preview"
+                                    runtime={runtime}
+                                    fitWidth={fit.width}
+                                    fitHeight={fit.height}
+                                    mediaMap={mediaMap}
+                                    widgetData={widgetData}
+                                    isOnline={isOnline}
+                                    mediaActive={
+                                        transition.lifecycle === 'animating'
+                                    }
+                                />
+                            </div>
+                        ) : null}
                     </>
                 )}
             </div>
 
             {showControls ? (
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="min-w-0">
+                    <div className="min-h-0 min-w-0">
                         <p
                             className="truncate text-sm font-medium"
                             data-test="playlist-player-name"
                         >
-                            {current?.name ?? 'No active items'}
+                            {(incoming ?? current)?.name ?? 'No active items'}
                         </p>
                         <p className="text-muted-foreground font-mono text-xs">
                             <span data-test="playlist-player-position">
                                 {total === 0
                                     ? '0/0'
-                                    : `${safeIndex + 1}/${total}`}
+                                    : `${
+                                          (incoming
+                                              ? Math.min(
+                                                    transition.incomingIndex ??
+                                                        0,
+                                                    total - 1,
+                                                )
+                                              : safeCurrent) + 1
+                                      }/${total}`}
                             </span>
                             {current
                                 ? ` · ${formatDuration(current.duration_seconds)}${

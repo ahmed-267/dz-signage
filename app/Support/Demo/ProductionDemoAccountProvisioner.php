@@ -190,13 +190,17 @@ final class ProductionDemoAccountProvisioner
                 'name' => 'Demo Owner',
                 'email' => $email,
                 'password' => Hash::make($password),
-                'email_verified_at' => now(),
             ]);
+            $user->forceFill([
+                'email_verified_at' => now(),
+                'onboarding_completed_at' => now(),
+            ])->save();
         } else {
             $user->forceFill([
                 'name' => 'Demo Owner',
                 'password' => Hash::make($password),
                 'email_verified_at' => $user->email_verified_at ?? now(),
+                'onboarding_completed_at' => $user->onboarding_completed_at ?? now(),
             ])->save();
         }
 

@@ -116,6 +116,7 @@ export function AppSidebar() {
                 title: ProductLabels.pairedNav,
                 href: screens(),
                 icon: Monitor,
+                dataTour: 'nav-tvs',
             });
         }
 
@@ -144,6 +145,7 @@ export function AppSidebar() {
                         title: ProductLabels.screenDesignPlural,
                         href: screen_designs(),
                         icon: Clapperboard,
+                        dataTour: 'nav-screens',
                     },
                     {
                         title: 'Templates',

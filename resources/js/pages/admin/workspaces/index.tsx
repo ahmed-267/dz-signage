@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AdminPageHeader } from '@/components/admin/admin-page-header';
+import { ADMIN_CUSTOMERS_TABS } from '@/components/admin/admin-section-header';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -154,8 +155,11 @@ export default function AdminWorkspacesIndex({
                 data-test="admin-workspaces"
             >
                 <AdminPageHeader
-                    title="Businesses"
-                    description="Platform-wide business directory."
+                    title="Customers"
+                    description="Businesses, users and paired TVs across the platform."
+                    badge={null}
+                    tabs={ADMIN_CUSTOMERS_TABS}
+                    activeTab="businesses"
                 />
 
                 <div className="flex flex-col gap-3 sm:flex-row">

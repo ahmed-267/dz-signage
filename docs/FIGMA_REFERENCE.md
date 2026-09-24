@@ -129,7 +129,7 @@ Dedicated admin shell (not the customer sidebar):
 
 - Branding: amber mark + **RMSignage Admin** wordmark; platform role label (Super Admin / Admin)
 - **Back to App** in sidebar footer and top bar
-- Nav groups: Overview · Customers (Workspaces / Users / Screens) · Billing (Subscriptions / Invoices) · Content (Templates) · Operations (Screen Health / Publishing Jobs / System Health / Errors) · Support (Support Requests / Audit Log) · Platform (Feature Flags / Settings)
+- Sidebar sections only: Overview · Customers · Billing · Content · Operations · Support · Settings (Super Admin) — leaf pages use in-section tabs
 - **Overview metrics:** real counts only (workspaces, users, templates, published_templates) — no fake MRR
 - Templates admin (+ platform Template Builder) — Super Admin & Admin
 - Screens — read-only platform list (`/admin/screens`)
@@ -193,7 +193,7 @@ Figma frame: TBD
 ### Paired TVs (Screens)
 
 Figma Make source: `src/pages/app/Screens.tsx` (fleet table, status filters, Connect Screen).  
-Customer UI label: **Paired TVs** (`ProductLabels`); routes may remain `/app/screens` (+ `/app/tvs` alias). Three independent axes (Active/Inactive · Connected/Disconnected · Online/Offline). **Screen Designs** terminology is unchanged. Pairing guide shows the real browser Player URL (`/player`), QR + PIN steps, and Help “How to pair a TV” — do not claim native TV OS apps. Implemented Phase 6 (+ pairing UX correction).
+Customer UI label: **Paired TVs** (`ProductLabels`); routes may remain `/app/screens` (+ `/app/tvs` alias). Three independent axes (Active/Inactive · Connected/Disconnected · Online/Offline). Cards/detail show resolver-backed **Now Showing** (Screen / Playlist / Schedule) with a read-only **Preview** modal (`TvContentPreviewDialog` + shared playlist player). **Screen Designs** terminology is unchanged. Pairing guide shows the real browser Player URL (`/player`), QR + PIN steps, and Help “How to pair a TV” / **Replay Product Tour** — do not claim native TV OS apps. Implemented Phase 6 (+ UX corrections).
 
 ### Admin TV Health
 
