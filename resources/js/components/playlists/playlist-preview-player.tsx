@@ -1,5 +1,12 @@
 import { Pause, Play, RotateCcw, SkipBack, SkipForward } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import {
     playlistIdleLayerStyle,
     playlistLayerStartStyle,
@@ -195,10 +202,13 @@ export function PlaylistPreviewPlayer({
 
         const measure = () => {
             const rect = stage.getBoundingClientRect();
-            setFit({
-                width: Math.max(80, rect.width),
-                height: Math.max(80, rect.height),
-            });
+            const width = Math.max(80, rect.width);
+            const height = Math.max(80, rect.height);
+            setFit((prev) =>
+                prev.width === width && prev.height === height
+                    ? prev
+                    : { width, height },
+            );
         };
 
         measure();
@@ -364,10 +374,30 @@ export function PlaylistPreviewPlayer({
         return () => {
             cancelled = true;
             animTokenRef.current += 1;
-            outgoingRef.current?.getAnimations().forEach((a) => a.cancel());
-            incomingRef.current?.getAnimations().forEach((a) => a.cancel());
+            // Only abort in-flight animations. Cancelling a finished fill
+            // snaps the layer back to its start pose and flashes the stage.
+            const abortRunning = (el: HTMLElement | null) => {
+                el?.getAnimations().forEach((animation) => {
+                    if (animation.playState !== 'finished') {
+                        animation.cancel();
+                    }
+                });
+            };
+            abortRunning(outgoingRef.current);
+            abortRunning(incomingRef.current);
         };
     }, [transitionRunKey, commitIncoming]);
+
+    // After commit, idle styles match the finished pose. Clear fills before
+    // paint so the next transition does not composite with a stale animation.
+    useLayoutEffect(() => {
+        if (transition.lifecycle !== 'idle') {
+            return;
+        }
+        outgoingRef.current?.getAnimations().forEach((animation) => {
+            animation.cancel();
+        });
+    }, [transition.lifecycle, current?.key]);
 
     const goTo = useCallback(
         (next: number) => {
@@ -495,6 +525,7 @@ export function PlaylistPreviewPlayer({
                         nextWarm &&
                         nextWarm.key !== current.key ? (
                             <div
+                                key="playlist-preload"
                                 className="pointer-events-none absolute inset-0 flex items-center justify-center"
                                 style={{
                                     opacity: 0,
@@ -519,6 +550,7 @@ export function PlaylistPreviewPlayer({
                         ) : null}
 
                         <div
+                            key={current.key}
                             ref={outgoingRef}
                             style={
                                 isTransitioning && incoming
@@ -546,6 +578,7 @@ export function PlaylistPreviewPlayer({
 
                         {isTransitioning && incoming ? (
                             <div
+                                key={incoming.key}
                                 ref={incomingRef}
                                 style={playlistLayerStartStyle(
                                     activeTransition,
