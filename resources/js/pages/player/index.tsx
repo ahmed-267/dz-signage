@@ -118,6 +118,37 @@ async function playerFetch(
     });
 }
 
+async function fetchLiveManifest(
+    token: string,
+): Promise<
+    | { kind: 'ok'; manifest: ManifestPayload }
+    | { kind: 'revoked' }
+    | { kind: 'fail' }
+> {
+    try {
+        const response = await playerFetch(
+            '/player/api/manifest',
+            { method: 'GET' },
+            token,
+        );
+
+        if (response.status === 401) {
+            return { kind: 'revoked' };
+        }
+
+        if (!response.ok) {
+            return { kind: 'fail' };
+        }
+
+        return {
+            kind: 'ok',
+            manifest: (await response.json()) as ManifestPayload,
+        };
+    } catch {
+        return { kind: 'fail' };
+    }
+}
+
 function mediaMapFromManifest(
     media: ManifestMedia | undefined,
 ): LayoutMediaMap {
@@ -260,6 +291,7 @@ export default function Player() {
     const tokenRef = useRef<string | null>(null);
     const pairIntervalRef = useRef<number | null>(null);
     const checkIntervalRef = useRef<number | null>(null);
+    const checkVisibilityRef = useRef<(() => void) | null>(null);
     const heartbeatIntervalRef = useRef<number | null>(null);
     const scheduleTimerRef = useRef<number | null>(null);
     const packageRef = useRef<OfflinePackage | null>(null);
@@ -280,6 +312,14 @@ export default function Player() {
         if (checkIntervalRef.current !== null) {
             window.clearInterval(checkIntervalRef.current);
             checkIntervalRef.current = null;
+        }
+        if (checkVisibilityRef.current) {
+            document.removeEventListener(
+                'visibilitychange',
+                checkVisibilityRef.current,
+            );
+            window.removeEventListener('focus', checkVisibilityRef.current);
+            checkVisibilityRef.current = null;
         }
     }
 
@@ -556,6 +596,9 @@ export default function Player() {
                 }
 
                 if (data.status === 'claimed') {
+                    if (tokenRef.current) {
+                        return;
+                    }
                     // Token already consumed (e.g. another tab) — start a fresh session.
                     clearPairInterval();
                     await startPairing();
@@ -571,17 +614,38 @@ export default function Player() {
         void poll();
     }
 
+    async function handleRevokedDevice(): Promise<false> {
+        clearDeviceToken();
+        tokenRef.current = null;
+        deploymentVersionRef.current = null;
+        packageRef.current = null;
+        await clearAllOfflineData();
+        return false;
+    }
+
     async function loadManifest(token: string): Promise<boolean> {
         try {
+            const online =
+                typeof navigator === 'undefined' || navigator.onLine;
+
+            if (online) {
+                const live = await fetchLiveManifest(token);
+                if (live.kind === 'revoked') {
+                    return handleRevokedDevice();
+                }
+                if (live.kind === 'ok') {
+                    if (mountedRef.current) {
+                        applyManifest(live.manifest);
+                    }
+                    void syncOfflinePackage(token);
+                    return true;
+                }
+            }
+
             const result = await syncOfflinePackage(token);
 
             if (result.status === 'failed' && result.error === 'revoked') {
-                clearDeviceToken();
-                tokenRef.current = null;
-                deploymentVersionRef.current = null;
-                packageRef.current = null;
-                await clearAllOfflineData();
-                return false;
+                return handleRevokedDevice();
             }
 
             if (
@@ -652,7 +716,7 @@ export default function Player() {
             return;
         }
 
-        if (status === 'no_content') {
+        if (status === 'no_content' || status === 'billing_required') {
             clearContent();
             setView('no_content');
             return;
@@ -853,10 +917,7 @@ export default function Player() {
                 );
 
                 if (response.status === 401) {
-                    clearDeviceToken();
-                    tokenRef.current = null;
-                    packageRef.current = null;
-                    await clearAllOfflineData();
+                    await handleRevokedDevice();
                     clearCheckInterval();
                     await startPairing();
                     return;
@@ -898,9 +959,20 @@ export default function Player() {
             }
         };
 
+        const onVisible = () => {
+            if (document.visibilityState === 'hidden') {
+                return;
+            }
+            void poll();
+        };
+        checkVisibilityRef.current = onVisible;
+        document.addEventListener('visibilitychange', onVisible);
+        window.addEventListener('focus', onVisible);
+
         checkIntervalRef.current = window.setInterval(() => {
             void poll();
         }, CHECK_POLL_MS);
+        void poll();
     }
 
     return (
@@ -963,9 +1035,14 @@ export default function Player() {
                             RMSignage
                         </p>
                         <h1 className="mt-4 max-w-lg text-2xl font-semibold tracking-tight sm:text-3xl">
-                            This screen is connected and ready. Publish a design
-                            from RMSignage.
+                            This TV is paired. Nothing is published to it yet.
                         </h1>
+                        <p className="mt-3 max-w-md text-base text-[#94a3b8]">
+                            In RMSignage open Publishing (or the Screen /
+                            Playlist) and choose{' '}
+                            <span className="text-white">Publish to TV</span>{' '}
+                            for this device. Saving a design is not enough.
+                        </p>
                     </div>
                 ) : null}
 

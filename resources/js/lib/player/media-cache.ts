@@ -9,13 +9,14 @@ export async function cacheAssets(
     token: string,
     onProgress?: (done: number, total: number) => void,
 ): Promise<{ ok: boolean; error?: string; cachedKeys: string[] }> {
-    let cache: Cache;
+    let cache: Cache | null = null;
     try {
         cache = await caches.open(MEDIA_CACHE);
     } catch {
+        // Fire TV / some WebViews have no Cache Storage. Online playback
+        // still works from network URLs; skip the offline media cache.
         return {
-            ok: false,
-            error: 'Cache Storage unavailable',
+            ok: true,
             cachedKeys: [],
         };
     }
@@ -44,12 +45,19 @@ export async function cacheAssets(
                 credentials: 'same-origin',
             });
 
-            if (!response.ok) {
+            if (response.status === 401) {
                 return {
                     ok: false,
-                    error: `Media ${asset.id} failed (${response.status})`,
+                    error: 'revoked',
                     cachedKeys,
                 };
+            }
+
+            if (!response.ok) {
+                // One missing file must not block the rest of the package.
+                done++;
+                onProgress?.(done, assets.length);
+                continue;
             }
 
             const headers = new Headers(response.headers);
@@ -65,15 +73,13 @@ export async function cacheAssets(
             );
             cachedKeys.push(asset.cacheKey);
         } catch (error) {
-            const message =
+            if (
                 error instanceof DOMException &&
                 error.name === 'QuotaExceededError'
-                    ? 'Storage quota exceeded'
-                    : error instanceof Error
-                      ? error.message
-                      : 'Media cache failed';
-
-            return { ok: false, error: message, cachedKeys };
+            ) {
+                // Activate the package anyway; remaining media streams live.
+                return { ok: true, cachedKeys };
+            }
         }
 
         done++;

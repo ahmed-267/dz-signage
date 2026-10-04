@@ -68,8 +68,19 @@ adb install -r app-release-signed.apk
 
 4. Launch **RMSignage TV** from the Fire TV apps row.
 5. Pair: the Player shows a PIN (`DZ-XXXX`) and QR. In RMSignage go to **Paired TVs → Pair a TV**. Claim with PIN or by scanning the QR on a phone.
-6. Restart the Stick (or force-stop the app) and confirm it **resumes playback without pairing again**.
-7. Unpair the TV in RMSignage and confirm the Player returns to the pairing PIN.
+6. **Publish content to that TV.** Pairing only connects the device. Publish a Screen Design version if it is still a draft, then **Publish to TV** from Publishing, the Screen, or the Playlist. The Stick stays on the paired/empty state until an Active Deployment (or matching Schedule) exists for that TV.
+7. Restart the Stick (or force-stop the app) and confirm it **resumes playback without pairing again**.
+8. Unpair the TV in RMSignage and confirm the Player returns to the pairing PIN.
+
+## Preview works, Stick still empty
+
+The Paired TVs **preview** is rendered in `/app`. It does not prove the Stick received a Player manifest.
+
+1. Confirm **Paired TVs** shows this device **Online** (heartbeat). Offline means the APK is not calling `/player/api`.
+2. **Now Showing** on that TV should name the Screen or Playlist. If it is empty, Publish to TV did not target this device.
+3. **Sync** should move off Pending after the Player reports the new deployment. If preview is Live and the Stick is still the empty paired page, the Player was stuck on an old empty offline package — fixed in current `/player` (live manifest first). Deploy that build, then force-stop **RMSignage TV** and open it again. You do not need to rebuild the APK; it loads the hosted Player.
+4. After a Cloud deploy, wait a minute, then force-stop the app so the service worker can pick up new JS.
+5. Optional check: open `https://YOUR_DOMAIN/player` in Silk on the Stick. If Silk plays and the APK does not, the APK was packaged from the dashboard manifest — rebuild from `/player`.
 
 ## What this APK does not do
 

@@ -8,6 +8,17 @@ import {
 } from '@/lib/player/offline-db';
 import { cacheAssets, pruneUnreferencedMedia } from '@/lib/player/media-cache';
 
+function abortAfter(ms: number): AbortSignal {
+    if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+        return AbortSignal.timeout(ms);
+    }
+
+    const controller = new AbortController();
+    window.setTimeout(() => controller.abort(), ms);
+
+    return controller.signal;
+}
+
 export type SyncResult =
     | { status: 'unchanged'; package: OfflinePackage }
     | { status: 'activated'; package: OfflinePackage }
@@ -15,9 +26,8 @@ export type SyncResult =
     | { status: 'skipped'; package: OfflinePackage | null };
 
 /**
- * Atomic offline sync:
- * fetch package → cache assets → store pending → activate only if complete.
- * On failure, the previous active package remains untouched.
+ * Offline sync: fetch package → best-effort media cache → activate.
+ * Incomplete Cache Storage on TVs must not block activating the new package.
  */
 export async function syncOfflinePackage(
     token: string,
@@ -33,7 +43,7 @@ export async function syncOfflinePackage(
                 'X-Device-Token': token,
             },
             credentials: 'same-origin',
-            signal: AbortSignal.timeout(8_000),
+            signal: abortAfter(30_000),
         });
 
         if (response.status === 401) {
@@ -79,17 +89,19 @@ export async function syncOfflinePackage(
     await putPendingPackage(remote);
 
     const cached = await cacheAssets(remote.assets, token);
-    if (!cached.ok) {
+    if (!cached.ok && cached.error === 'revoked') {
         await discardPendingPackage();
+        await patchRuntime({
+            syncError: cached.error,
+        });
+
+        return { status: 'failed', error: 'revoked', package: active };
+    }
+
+    if (!cached.ok) {
         await patchRuntime({
             syncError: cached.error ?? 'Asset cache incomplete',
         });
-
-        return {
-            status: 'failed',
-            error: cached.error ?? 'Asset cache incomplete',
-            package: active,
-        };
     }
 
     const activated = await activatePendingPackage();
