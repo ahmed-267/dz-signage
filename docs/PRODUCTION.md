@@ -47,6 +47,10 @@ Do not expose System Health publicly.
 8. Smoke: login → publish → pair Player → heartbeat → `/app/analytics`
 9. Confirm Stripe webhook + billing portal in live/test mode intentionally.
 
+Customer PWA files: `/manifest.webmanifest`, `/sw.js`, `/icons/pwa-*.png`. Keep `/sw.js` cache short (`Cache-Control: no-cache`) so workers update. This worker is scoped to `/app/` and must stay separate from `/player-sw.js`.
+
+Player PWA (Fire TV / PWABuilder): `/player.webmanifest`, `/player-sw.js`, `/.well-known/assetlinks.json`. Set production `APP_URL` to the public HTTPS origin. After signing the APK, put cert fingerprints in `PLAYER_ANDROID_SHA256_FINGERPRINTS`. See `docs/FIRE_TV_PLAYER.md`.
+
 ## Scheduler jobs
 
 | Command                            | Cadence         | Notes              |

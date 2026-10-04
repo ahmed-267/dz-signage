@@ -1,4 +1,4 @@
-import { qrImageUrl } from '@/lib/qrcode';
+import { renderSVG } from 'uqr';
 import { cn } from '@/lib/utils';
 
 type PairingQrProps = {
@@ -9,8 +9,8 @@ type PairingQrProps = {
 };
 
 /**
- * Renders a QR code for the player pairing URL.
- * Uses QRServer image API in Phase 5 (see `@/lib/qrcode`).
+ * Same-origin SVG QR for the pairing URL. Fire TV / TWA must not depend on
+ * a third-party QR image API. The PIN remains the primary pairing UX.
  */
 export function PairingQr({
     url,
@@ -18,9 +18,18 @@ export function PairingQr({
     className,
     'data-test': dataTest = 'player-qr',
 }: PairingQrProps) {
+    const svg = renderSVG(url, {
+        ecc: 'M',
+        boostEcc: true,
+        border: 2,
+        pixelSize: 1,
+        whiteColor: '#ffffff',
+        blackColor: '#0b0f14',
+    });
+
     return (
         <img
-            src={qrImageUrl(url, size)}
+            src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`}
             alt="Scan to open pairing page"
             width={size}
             height={size}

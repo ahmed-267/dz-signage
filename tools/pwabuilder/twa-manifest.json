@@ -1,0 +1,21 @@
+{
+    "packageId": "com.rmsignage.player",
+    "host": "REPLACE_WITH_PRODUCTION_HOST",
+    "name": "RMSignage Player",
+    "launcherName": "RMSignage TV",
+    "display": "fullscreen",
+    "themeColor": "#0A0A0A",
+    "navigationColor": "#0A0A0A",
+    "backgroundColor": "#0A0A0A",
+    "enableNotifications": false,
+    "startUrl": "/player",
+    "iconUrl": "https://REPLACE_WITH_PRODUCTION_HOST/icons/pwa-512.png",
+    "maskableIconUrl": "https://REPLACE_WITH_PRODUCTION_HOST/icons/pwa-512-maskable.png",
+    "appVersionName": "1.0.0",
+    "appVersionCode": 1,
+    "shortcuts": [],
+    "webManifestUrl": "https://REPLACE_WITH_PRODUCTION_HOST/player.webmanifest",
+    "fallbackType": "customtabs",
+    "orientation": "any",
+    "generatorApp": "bubblewrap"
+}

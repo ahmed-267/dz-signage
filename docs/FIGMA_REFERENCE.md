@@ -193,7 +193,7 @@ Figma frame: TBD
 ### Paired TVs (Screens)
 
 Figma Make source: `src/pages/app/Screens.tsx` (fleet table, status filters, Connect Screen).  
-Customer UI label: **Paired TVs** (`ProductLabels`); routes may remain `/app/screens` (+ `/app/tvs` alias). Three independent axes (Active/Inactive · Connected/Disconnected · Online/Offline). Cards/detail show resolver-backed **Now Showing** (Screen / Playlist / Schedule) with a read-only **Preview** modal (`TvContentPreviewDialog` + shared playlist player). **Screen Designs** terminology is unchanged. Pairing guide shows the real browser Player URL (`/player`), QR + PIN steps, and Help “How to pair a TV” / **Replay Product Tour** — do not claim native TV OS apps. Implemented Phase 6 (+ UX corrections).
+Customer UI label: **Paired TVs** (`ProductLabels`); routes may remain `/app/screens` (+ `/app/tvs` alias). Three independent axes (Active/Inactive · Connected/Disconnected · Online/Offline). Cards/detail show resolver-backed **Now Showing** (Screen / Playlist / Schedule) with a read-only **Preview** modal (`TvContentPreviewDialog` + shared playlist player). **Screen Designs** terminology is unchanged. Pairing guide shows the real Player URL (`/player`), QR + PIN steps, and Help “How to pair a TV” / **Replay Product Tour**. Fire TV can sideload a PWABuilder wrap of `/player`; that is not a native TV OS app. Implemented Phase 6 (+ UX corrections).
 
 ### Admin TV Health
 

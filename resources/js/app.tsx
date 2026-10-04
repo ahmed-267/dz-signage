@@ -6,6 +6,7 @@ import AdminLayout from '@/layouts/admin-layout';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import { capturePwaInstallEvents, registerAppServiceWorker } from '@/lib/pwa';
 import { ProductBrand } from '@/lib/product-brand';
 
 const appName = ProductBrand.name;
@@ -48,3 +49,6 @@ void createInertiaApp({
 
 // This will set light / dark mode on load...
 initializeTheme();
+
+capturePwaInstallEvents();
+void registerAppServiceWorker();

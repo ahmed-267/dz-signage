@@ -1,22 +1,15 @@
 {
-    "id": "/player",
-    "name": "RMSignage Player",
-    "short_name": "RMSignage TV",
-    "description": "Dedicated TV player for RMSignage. Pair a screen, then play published Screens, Playlists and Schedules.",
-    "start_url": "/player",
-    "scope": "/player",
-    "display": "fullscreen",
-    "display_override": ["fullscreen", "standalone", "minimal-ui"],
+    "id": "/app",
+    "name": "RMSignage",
+    "short_name": "RMSignage",
+    "description": "Create Screens, playlists and schedules, then publish to paired TVs.",
+    "start_url": "/app/dashboard",
+    "scope": "/app/",
+    "display": "standalone",
     "orientation": "any",
-    "background_color": "#0a0a0a",
-    "theme_color": "#0a0a0a",
+    "background_color": "#09090E",
+    "theme_color": "#0891B2",
     "lang": "en",
-    "dir": "ltr",
-    "prefer_related_applications": false,
-    "launch_handler": {
-        "client_mode": "navigate-existing"
-    },
-    "categories": ["business", "utilities"],
     "icons": [
         {
             "src": "/icons/pwa-192.png",

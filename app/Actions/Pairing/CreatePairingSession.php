@@ -16,9 +16,10 @@ class CreatePairingSession
     private const TTL_MINUTES = 10;
 
     /**
+     * @param  array<string, mixed>|null  $deviceMeta
      * @return array{session: PairingSession, code: string}
      */
-    public function handle(?Request $request = null): array
+    public function handle(?Request $request = null, ?array $deviceMeta = null): array
     {
         $publicId = (string) Str::ulid();
         $code = $this->generateUniqueCode();
@@ -27,7 +28,7 @@ class CreatePairingSession
             'public_id' => $publicId,
             'code_hash' => PairingSession::hashCode($code),
             'expires_at' => now()->addMinutes(self::TTL_MINUTES),
-            'device_meta' => null,
+            'device_meta' => $deviceMeta,
             'ip_address' => $request?->ip(),
             'user_agent' => $request?->userAgent(),
         ]);

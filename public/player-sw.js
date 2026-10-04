@@ -69,7 +69,8 @@ self.addEventListener('fetch', (event) => {
         url.pathname.startsWith('/build/') ||
         url.pathname.startsWith('/fonts/') ||
         url.pathname === '/favicon.svg' ||
-        url.pathname === '/player.webmanifest'
+        url.pathname === '/player.webmanifest' ||
+        url.pathname.startsWith('/icons/')
     ) {
         event.respondWith(cacheFirst(request, SHELL_CACHE));
     }

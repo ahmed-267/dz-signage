@@ -218,7 +218,7 @@ Not a new numbered phase. Docs and product surfaces corrected so shipped work is
 - **Premium AI quality correction** — creative brief, layout archetypes (Hero Product, Split, Editorial, Information Board, Event, Menu, Full-Bleed, Welcome Lobby), `TextFit` + `DesignQualityValidator` refine/gate, Brand Kit context, image prompt enhancement, text variants, Create-with-AI concept selection.
 - **Playlist runtime source of truth** — `PlaylistRuntimeCalculator` (`duration_seconds × loop_count`); draft vs published totals on Schedule editor; Player/manifest use the same rule.
 - **Embed / live content** — `EmbedUrlValidator` + shared `EmbedWidget` (YouTube/Vimeo/HLS/`hls.js`/MP4/website); blocked framing reported; SSRF via `SafeRemoteUrl`; CSP `frame-src`/`media-src` intentional.
-- **TV pairing guidance** — Paired TVs empty state + Pair a TV steps show browser Player URL; Help “How to pair a TV”; no native Tizen/WebOS/Fire claims.
+- **TV pairing guidance** — Paired TVs empty state + Pair a TV steps show the hosted Player URL; Help “How to pair a TV”; Fire TV may sideload a PWABuilder APK that wraps `/player` (not a native OS player).
 - **Team UX** — Figma-style members table, role badges, Roles & Permissions cards, plan seat limit from `BillingEntitlement` (no fake Last Active).
 - **Landing simplification** — ~20–30% shorter; redundant pairing/fleet/schedule/offline/widgets/publishing sections folded into workflow + feature-showcase.
 - **Analytics visualisation correction** — shared Recharts chart system on Dashboard + `/app/analytics` over real telemetry (no fake datasets).

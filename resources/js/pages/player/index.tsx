@@ -29,13 +29,20 @@ import {
     resetPlaybackTracking,
     trackContentApplied,
 } from '@/lib/player/playback-telemetry';
+import {
+    clearDeviceToken,
+    collectDeviceMeta,
+    persistDeviceToken,
+    readStoredToken,
+} from '@/lib/player/device-auth';
+import { isTvShell } from '@/lib/player/tv-shell';
+import { startPlayerWakeLock } from '@/lib/player/wake-lock';
 import { isLayoutSchema, type LayoutSchema } from '@/types/layout-schema';
 import type {
     PlaylistTransition,
     PlaylistTransitionSpeed,
 } from '@/types/playlist';
 
-const DEVICE_TOKEN_KEY = 'dz_player_device_token';
 const PAIR_POLL_MS = 2500;
 const CHECK_POLL_MS = 4000;
 const DEFAULT_HEARTBEAT_MS = 45_000;
@@ -89,33 +96,6 @@ type ManifestPayload = OfflineManifestPayload & {
     items?: ManifestPlaylistItem[];
     media?: ManifestMedia;
 };
-
-function readStoredToken(): string | null {
-    try {
-        const value = window.localStorage.getItem(DEVICE_TOKEN_KEY);
-        return value && value.length > 0 ? value : null;
-    } catch {
-        return null;
-    }
-}
-
-function persistDeviceToken(token: string): void {
-    try {
-        window.localStorage.setItem(DEVICE_TOKEN_KEY, token);
-    } catch {
-        // Cookie still enables authenticated media requests.
-    }
-    document.cookie = `${DEVICE_TOKEN_KEY}=${encodeURIComponent(token)}; path=/; SameSite=Lax`;
-}
-
-function clearDeviceToken(): void {
-    try {
-        window.localStorage.removeItem(DEVICE_TOKEN_KEY);
-    } catch {
-        // ignore
-    }
-    document.cookie = `${DEVICE_TOKEN_KEY}=; path=/; Max-Age=0; SameSite=Lax`;
-}
 
 async function playerFetch(
     url: string,
@@ -395,7 +375,11 @@ export default function Player() {
         };
         measure();
         window.addEventListener('resize', measure);
-        return () => window.removeEventListener('resize', measure);
+        const stopWakeLock = startPlayerWakeLock();
+        return () => {
+            window.removeEventListener('resize', measure);
+            stopWakeLock();
+        };
     }, [view]);
 
     async function applyPackage(pkg: OfflinePackage) {
@@ -436,7 +420,7 @@ export default function Player() {
         setErrorMessage(null);
         errorCodeRef.current = null;
 
-        const existing = readStoredToken();
+        const existing = await readStoredToken();
         if (existing) {
             tokenRef.current = existing;
             persistDeviceToken(existing);
@@ -485,7 +469,9 @@ export default function Player() {
         try {
             const response = await playerFetch('/player/api/pairing-sessions', {
                 method: 'POST',
-                body: '{}',
+                body: JSON.stringify({
+                    device_meta: collectDeviceMeta(PLAYER_VERSION),
+                }),
             });
 
             if (!response.ok) {
@@ -922,6 +908,8 @@ export default function Player() {
             <Head title="Player">
                 <link rel="manifest" href="/player.webmanifest" />
                 <meta name="theme-color" content="#0a0a0a" />
+                <meta name="mobile-web-app-capable" content="yes" />
+                <meta name="apple-mobile-web-app-capable" content="yes" />
             </Head>
             <div
                 data-test="player-root"
@@ -937,25 +925,29 @@ export default function Player() {
                 {view === 'pairing' && pairing ? (
                     <div
                         data-test="player-pairing"
-                        className="flex flex-1 flex-col items-center justify-center gap-8 px-6 py-10 text-center"
+                        tabIndex={0}
+                        className="flex flex-1 flex-col items-center justify-center gap-8 px-6 py-10 text-center outline-none"
                     >
                         <p className="font-display text-sm font-semibold tracking-[0.28em] text-[#5eead4] uppercase">
                             RMSignage
                         </p>
-                        <PairingQr url={pairing.pair_url} size={240} />
+                        <PairingQr
+                            url={pairing.pair_url}
+                            size={isTvShell() ? 320 : 240}
+                        />
                         <div>
                             <p
                                 data-test="player-pairing-code"
-                                className="font-mono text-4xl font-semibold tracking-[0.35em] text-white sm:text-5xl"
+                                className="font-mono text-5xl font-semibold tracking-[0.35em] text-white sm:text-6xl"
                                 aria-label={`Pairing code ${pairing.code}`}
                             >
                                 {pairing.code}
                             </p>
-                            <p className="mt-4 max-w-md text-sm text-[#94a3b8]">
+                            <p className="mt-4 max-w-xl text-base text-[#94a3b8] sm:text-lg">
                                 Keep this screen open. In RMSignage go to Paired
-                                TVs → Pair a TV.
+                                TVs → Pair a TV. Scan the QR or enter this PIN.
                             </p>
-                            <p className="mt-2 text-xs text-[#64748b]">
+                            <p className="mt-2 text-sm text-[#64748b]">
                                 Expires in {formatCountdown(expiresIn)}
                             </p>
                         </div>
@@ -1016,7 +1008,8 @@ export default function Player() {
                         </p>
                         <button
                             type="button"
-                            className="rounded-md bg-[#5eead4] px-4 py-2 text-sm font-medium text-[#0b0f14]"
+                            autoFocus
+                            className="min-h-12 rounded-md bg-[#5eead4] px-6 py-3 text-base font-medium text-[#0b0f14] outline-none focus-visible:ring-4 focus-visible:ring-[#5eead4]/50"
                             onClick={() => void bootstrap()}
                         >
                             Try again

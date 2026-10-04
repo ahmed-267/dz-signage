@@ -153,16 +153,20 @@ export default function AppHelpIndex({
                                 How to pair a TV
                             </CardTitle>
                             <CardDescription>
-                                Connect any browser-capable TV, stick, or mini
-                                PC — no native Samsung, LG, or Fire TV app
-                                required.
+                                Connect a browser-capable TV, stick, mini PC, or
+                                a Fire TV Stick running the packaged Player
+                                APK. There is no separate native Samsung, LG, or
+                                Fire OS player — the APK only wraps this same
+                                hosted /player PWA.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
                             <ol className="text-muted-foreground list-decimal space-y-2 pl-4 text-sm leading-relaxed">
                                 <li>
                                     On the TV, open the RMSignage Player URL
-                                    (shown under Paired TVs → Pair a TV).
+                                    (shown under Paired TVs → Pair a TV), or
+                                    launch the sideloaded Player APK on Fire TV.
+                                    Both use the same pairing PIN and QR.
                                 </li>
                                 <li>
                                     The TV displays a QR code and a short

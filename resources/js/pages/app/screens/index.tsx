@@ -1111,9 +1111,10 @@ export default function ScreensIndex({
                                 </DialogTitle>
                                 <DialogDescription>
                                     Follow the steps on the TV, then enter the
-                                    pairing code below. No native TV app store
-                                    install is required — use a browser-capable
-                                    display.
+                                    pairing code below. Use a browser on the
+                                    display, or the Fire TV APK that wraps the
+                                    same hosted Player. There is no separate
+                                    native TV application.
                                 </DialogDescription>
                             </DialogHeader>
                             <ol className="bg-muted/40 border-border space-y-3 rounded-xl border p-4 text-sm">

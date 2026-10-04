@@ -21,7 +21,22 @@ class PairingController extends Controller
 
     public function store(Request $request, CreatePairingSession $action): JsonResponse
     {
-        $result = $action->handle($request);
+        $validated = $request->validate([
+            'device_meta' => ['sometimes', 'nullable', 'array'],
+            'device_meta.user_agent' => ['sometimes', 'nullable', 'string', 'max:1024'],
+            'device_meta.platform' => ['sometimes', 'nullable', 'string', 'max:128'],
+            'device_meta.language' => ['sometimes', 'nullable', 'string', 'max:32'],
+            'device_meta.form_factor' => ['sometimes', 'nullable', 'string', 'max:32'],
+            'device_meta.player_version' => ['sometimes', 'nullable', 'string', 'max:32'],
+            'device_meta.viewport' => ['sometimes', 'nullable', 'array'],
+            'device_meta.viewport.width' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:16000'],
+            'device_meta.viewport.height' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:16000'],
+        ]);
+
+        $result = $action->handle(
+            $request,
+            is_array($validated['device_meta'] ?? null) ? $validated['device_meta'] : null,
+        );
         /** @var PairingSession $session */
         $session = $result['session'];
         $code = $result['code'];

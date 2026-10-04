@@ -83,11 +83,18 @@ class PlayerOfflineDb extends Dexie {
 
     runtime!: Table<OfflineRuntimeState, string>;
 
+    credentials!: Table<{ id: 'device'; token: string }, string>;
+
     constructor() {
         super('dz-player-offline');
         this.version(1).stores({
             packages: 'slot, packageVersion',
             runtime: 'id',
+        });
+        this.version(2).stores({
+            packages: 'slot, packageVersion',
+            runtime: 'id',
+            credentials: 'id',
         });
     }
 }
@@ -134,6 +141,7 @@ export async function discardPendingPackage(): Promise<void> {
 export async function clearAllOfflineData(): Promise<void> {
     await playerOfflineDb.packages.clear();
     await playerOfflineDb.runtime.clear();
+    await playerOfflineDb.credentials.clear();
     try {
         await caches.delete(MEDIA_CACHE);
     } catch {

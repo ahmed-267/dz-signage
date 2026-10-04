@@ -21,7 +21,7 @@ Masjids · Restaurants · Cafés · Retail · Corporate · Education · Healthca
 - **Publish Playlist** — finalise a playlist version (does **not** schedule or deploy by itself)
 - **Publish Playlist to Screen** — deploy a published playlist version to one or more Screens
 - Create named **Schedules** that play a published playlist on chosen Screens over a timing window (timezone, days, dates, times, priority)
-- Connect remote TVs/displays (**Screens**) via pairing code / QR — browser Player at `/player` with in-product pairing guide (no native Tizen/WebOS/Fire apps claimed)
+- Connect remote TVs/displays (**TVs**) via pairing code / QR — hosted Player at `/player`. Fire TV can run the **same** Player as a PWABuilder-packaged APK (sideload). That APK is not a native rewrite and is not an Amazon Appstore app.
 - Manage Screens (rename, operational status, unpair)
 - Use dynamic **Widgets** inside Screen Designs (Weather, RSS, Calendar, Embed — YouTube/Vimeo/HLS/video/website with blocked-site detection, Clock, etc.)
 - Generate **AI** text, images, and draft Screen Designs from professional layout archetypes (no AI video)

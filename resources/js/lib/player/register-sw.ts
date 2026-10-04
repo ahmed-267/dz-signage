@@ -36,7 +36,12 @@ export async function warmPlayerShellCache(): Promise<void> {
 
     try {
         const cache = await caches.open(SHELL_CACHE);
-        const urls = new Set<string>(['/player', '/player.webmanifest']);
+        const urls = new Set<string>([
+            '/player',
+            '/player.webmanifest',
+            '/icons/pwa-192.png',
+            '/icons/pwa-512.png',
+        ]);
 
         document
             .querySelectorAll('script[src], link[rel="stylesheet"]')
